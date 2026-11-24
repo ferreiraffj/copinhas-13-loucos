@@ -62,11 +62,11 @@ export function draftIssues(draft) {
     const name = normalizeName(player.name)
     const year = Number(player.year)
     const key = athleteKey(player)
-    if (name.length < 3 || !name.includes(' ')) issues['name-' + index] = 'Informe nome e sobrenome.'
+    if (name.length < 3) issues['name-' + index] = 'Informe o nome do atleta.'
     else if (years.includes(year) && seen.has(key)) issues['name-' + index] = 'Este atleta já consta no elenco.'
     if (!years.includes(year)) issues['year-' + index] = 'Selecione o ano de nascimento.'
     if (year === 2011 && ++oldest > 2) issues['year-' + index] = 'O limite de 2 atletas de 2011 foi atingido.'
-    if (years.includes(year) && name.includes(' ')) seen.add(key)
+    if (years.includes(year)) seen.add(key)
   })
   return issues
 }

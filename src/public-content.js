@@ -25,6 +25,8 @@ export function confirmedSection(state) {
 
 export function aboutSection(settings) {
   const contact = settings?.contact_phone
+  const instagram = settings?.contact_instagram
+  const email = settings?.contact_email
   return `<section class="public-section" id="sobre" aria-labelledby="about-title">
     <div class="section-title"><span class="section-icon">${icon('note')}</span><h2 id="about-title" tabindex="-1">Sobre a Copinha</h2></div>
     <div class="about-grid">
@@ -42,6 +44,8 @@ export function aboutSection(settings) {
         <p>
           <strong>Felipe Ferreira (Diretoria 13 Loucos)</strong>
         ${contact ? `<a class="button primary" href="https://wa.me/55${escape(contact)}" target="_blank" rel="noopener noreferrer">WhatsApp ${escape(phone(contact))}</a>` : '<p>Whatsapp: (11) 93939-5922.<br>Instagram ofical: @13_loucos<br>E-mail: trezeloucosfc@gmail.com</p>'}
+        ${instagram ? `<a class="button secondary" href="https://instagram.com/${escape(instagram)}" target="_blank" rel="noopener noreferrer">Instagram @${escape(instagram)}</a>` : ''}
+        ${email ? `<a class="button secondary" href="mailto:${escape(email)}">E-mail ${escape(email)}</a>` : ''}
       </aside>
     </div>
   </section>`

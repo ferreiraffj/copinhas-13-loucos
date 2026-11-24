@@ -14,6 +14,7 @@ const state = {
   publicTeams: data.configured ? null : demoTeams.filter(team => team.status === 'confirmed'),
   publicTeamsFailed: false, sponsors: data.configured ? null : [{ ...firstSponsor }],
   sponsorDraft: { name: '', logo: null }, sponsorIndex: 0, contactDraft: null,
+  contactInstagramDraft: null, contactEmailDraft: null,
   sponsorPaused: matchMedia('(prefers-reduced-motion: reduce)').matches,
   logoErrors: { team: '', sponsor: '' }, logoRequest: null, touched: new Set(), submitted: false,
   draft: null, dirty: false, busy: false, loading: false, message: null, challenge: false,
@@ -224,6 +225,8 @@ async function openAdmin() {
     state.teams = teams
     state.sponsors = sponsors
     state.contactDraft = null
+    state.contactInstagramDraft = null
+    state.contactEmailDraft = null
     window.scrollTo(0, 0)
   } catch (error) {
     state.teams = []
@@ -413,14 +416,20 @@ async function submitDeadline(form) {
 
 async function submitContact(form) {
   const entered = form.elements.contact_phone.value
+  const instagram = form.elements.contact_instagram.value.trim().replace(/^@+/, '') || null
+  const email = form.elements.contact_email.value.trim() || null
+  if (instagram && !/^[a-z0-9._]{1,30}$/i.test(instagram)) throw new Error('Informe um Instagram válido.')
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Informe um e-mail válido.')
   if (entered && !validPhone(entered)) throw new Error('Informe um WhatsApp válido com DDD.')
   const contact = phoneDigits(entered) || null
   const revision = state.settings.revision
   state.settings = data.configured
-    ? await data.saveContact(contact, revision)
-    : { ...state.settings, contact_phone: contact, revision: revision + 1 }
+    ? await data.saveContact(contact, instagram, email, revision)
+    : { ...state.settings, contact_phone: contact, contact_instagram: instagram, contact_email: email, revision: revision + 1 }
   state.contactDraft = null
-  report(contact ? 'WhatsApp da organização atualizado.' : 'WhatsApp removido da página pública.')
+  state.contactInstagramDraft = null
+  state.contactEmailDraft = null
+  report('Contatos da organização atualizados.')
 }
 
 async function submitSponsor() {
@@ -545,6 +554,14 @@ app.addEventListener('input', event => {
   if (field.name === 'contact_phone') {
     state.contactDraft = field.value
     showIssue('contact_phone', field.value && !validPhone(field.value) ? 'Informe um WhatsApp válido com DDD.' : '')
+    return
+  }
+  if (field.name === 'contact_instagram') {
+    state.contactInstagramDraft = field.value
+    return
+  }
+  if (field.name === 'contact_email') {
+    state.contactEmailDraft = field.value
     return
   }
   if (field.name === 'sponsor_name') state.sponsorDraft.name = field.value

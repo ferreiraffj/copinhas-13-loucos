@@ -97,7 +97,6 @@ begin
   for player in select value from jsonb_array_elements(p_players) loop
     if coalesce(jsonb_typeof(player->'name'), '') <> 'string'
       or char_length(btrim(player->>'name')) not between 3 and 90
-      or btrim(player->>'name') !~ '[^[:space:]][[:space:]]+[^[:space:]]'
       or coalesce(jsonb_typeof(player->'year'), '') <> 'number'
       or coalesce(player->>'year', '') !~ '^(2011|2012|2013|2014)$' then
       raise exception 'Informe o nome completo e um ano de nascimento válido para cada atleta.';

@@ -233,8 +233,10 @@ function admin(state) {
 function adminExtras(state) {
   return `<div class="admin-settings">
     ${state.settings ? `<section class="card form-card">
-      <div class="form-heading"><span class="section-icon">${icon('user')}</span><div><h2>Contato público</h2><p>O WhatsApp de Felipe Ferreira aparecerá na seção Sobre.</p></div></div>
+      <div class="form-heading"><span class="section-icon">${icon('user')}</span><div><h2>Contato público</h2><p>Os canais de contato aparecerão na seção Sobre.</p></div></div>
       <form id="contact-form" class="inline-form">
+        ${input('Instagram', 'contact_instagram', state.contactInstagramDraft ?? state.settings.contact_instagram ?? '', 'type="text" maxlength="40" placeholder="@13_loucos"')}
+        ${input('E-mail', 'contact_email', state.contactEmailDraft ?? state.settings.contact_email ?? '', 'type="email" maxlength="254" autocomplete="email" placeholder="contato@exemplo.com"')}
         ${input('WhatsApp da organização', 'contact_phone', state.contactDraft ?? phone(state.settings.contact_phone), 'type="tel" data-phone inputmode="tel" autocomplete="tel-national" placeholder="(11) 99999-9999"')}
         <button class="button primary" type="submit" ${state.busy ? 'disabled' : ''}>Salvar contato</button>
       </form>

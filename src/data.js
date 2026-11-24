@@ -44,7 +44,7 @@ async function mutation(name, values) {
 }
 
 export async function settings() {
-  return result(await supabase.from('tournament_settings').select('edit_deadline, contact_phone, revision').eq('id', 1).single())
+  return result(await supabase.from('tournament_settings').select('edit_deadline, contact_phone, contact_instagram, contact_email, revision').eq('id', 1).single())
 }
 
 export async function isMaster() {
@@ -101,6 +101,8 @@ export function removeSponsor(id) {
   return mutation('remove_sponsor', { p_id: id })
 }
 
-export function saveContact(phone, revision) {
-  return mutation('save_organizer_contact', { p_phone: phone, p_revision: revision })
+export function saveContact(phone, instagram, email, revision) {
+  return mutation('save_organizer_contact', {
+    p_phone: phone, p_instagram: instagram, p_email: email, p_revision: revision,
+  })
 }
