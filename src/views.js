@@ -156,9 +156,11 @@ function team(state) {
           <div class="form-heading"><span class="section-icon">${icon('user')}</span><div><h2>Dados da equipe</h2><p>Informe o contato do representante adulto.</p></div></div>
           <fieldset ${busy ? 'disabled' : ''}>
             ${input('Nome da equipe', 'team_name', draft.team_name, 'required maxlength="80" autocomplete="organization"')}
+            ${input('Instagram da equipe (opcional)', 'team_instagram', draft.team_instagram, 'maxlength="40" placeholder="@equipe"')}
             <div class="field-grid">
               ${input('Nome do representante', 'representative_name', draft.representative_name, 'required maxlength="90" autocomplete="name"')}
               ${input('WhatsApp com DDD', 'representative_phone', draft.representative_phone, 'required type="tel" data-phone inputmode="tel" autocomplete="tel-national" placeholder="(11) 99999-9999"')}
+              ${input('Instagram do responsável (opcional)', 'representative_instagram', draft.representative_instagram, 'maxlength="40" placeholder="@responsavel"')}
             </div>
             ${imagePicker('team', draft, state.logoErrors.team, busy)}
           </fieldset>

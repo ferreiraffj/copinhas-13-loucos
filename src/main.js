@@ -23,7 +23,7 @@ let turnstileLoad
 let widgetId
 
 function emptyDraft() {
-  return { team_name: '', representative_name: '', representative_phone: '', logo: null, players: Array.from({ length: 5 }, blankPlayer) }
+  return { team_name: '', representative_name: '', representative_phone: '', team_instagram: '', representative_instagram: '', logo: null, players: Array.from({ length: 5 }, blankPlayer) }
 }
 
 function loadDraft() {
@@ -31,6 +31,8 @@ function loadDraft() {
     team_name: state.own.team_name,
     representative_name: state.own.representative_name,
     representative_phone: phone(state.own.representative_phone),
+    team_instagram: state.own.team_instagram ?? '',
+    representative_instagram: state.own.representative_instagram ?? '',
     players: structuredClone(state.own.players),
     logo: state.own.logo ?? null,
   } : emptyDraft()
@@ -366,8 +368,15 @@ async function submitRegistration() {
     team_name: state.draft.team_name.trim(),
     representative_name: state.draft.representative_name.trim(),
     representative_phone: state.draft.representative_phone.replace(/\D/g, ''),
+    team_instagram: state.draft.team_instagram.trim().replace(/^@+/, ''),
+    representative_instagram: state.draft.representative_instagram.trim().replace(/^@+/, ''),
     logo: state.draft.logo,
     players: state.draft.players.map(player => ({ name: normalizeName(player.name), year: Number(player.year) })),
+  }
+  for (const instagram of [draft.team_instagram, draft.representative_instagram]) {
+    if (instagram && !/^[a-z0-9._]{1,30}$/i.test(instagram)) {
+      throw new Error('Informe um Instagram válido ou deixe o campo em branco.')
+    }
   }
   const existing = state.own
   if (data.configured) {
@@ -375,6 +384,7 @@ async function submitRegistration() {
   } else {
     const needsReview = JSON.stringify(draft.players) !== JSON.stringify(existing?.players)
       || draft.team_name !== existing?.team_name || draft.logo !== existing?.logo
+      || draft.team_instagram !== existing?.team_instagram || draft.representative_instagram !== existing?.representative_instagram
     state.own = {
       ...draft, id: 'preview-own', revision: (existing?.revision ?? 0) + 1,
       status: existing?.status === 'confirmed' && needsReview ? 'pending' : existing?.status ?? 'pending',

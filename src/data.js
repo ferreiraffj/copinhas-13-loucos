@@ -73,6 +73,8 @@ export function saveRegistration(draft, revision) {
     p_phone: draft.representative_phone,
     p_players: draft.players,
     p_logo: draft.logo,
+    p_team_instagram: draft.team_instagram || null,
+    p_representative_instagram: draft.representative_instagram || null,
     p_revision: revision,
   })
 }

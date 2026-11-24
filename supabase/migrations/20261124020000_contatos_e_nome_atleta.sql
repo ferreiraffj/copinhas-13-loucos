@@ -10,6 +10,16 @@ alter table public.tournament_settings
   add constraint tournament_settings_contact_email_check
     check (contact_email is null or contact_email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$');
 
+alter table public.registrations
+  add column if not exists team_instagram text,
+  add column if not exists representative_instagram text;
+
+alter table public.registrations
+  add constraint registrations_team_instagram_check
+    check (team_instagram is null or team_instagram ~ '^[A-Za-z0-9._]{1,30}$'),
+  add constraint registrations_representative_instagram_check
+    check (representative_instagram is null or representative_instagram ~ '^[A-Za-z0-9._]{1,30}$');
+
 -- Recreate the save function so existing databases also accept a single-word athlete name.
 create or replace function public.save_registration(
   p_team_name text, p_representative text, p_phone text,
@@ -104,6 +114,35 @@ begin
 end;
 $$;
 
+create or replace function public.save_registration_with_logo(
+  p_team_name text, p_representative text, p_phone text, p_players jsonb,
+  p_revision integer, p_logo text, p_team_instagram text, p_representative_instagram text
+)
+returns public.registrations
+language plpgsql security definer set search_path = '' as $$
+declare
+  registration public.registrations;
+  clean_team_instagram text := nullif(regexp_replace(btrim(coalesce(p_team_instagram, '')), '^@+', ''), '');
+  clean_representative_instagram text := nullif(regexp_replace(btrim(coalesce(p_representative_instagram, '')), '^@+', ''), '');
+begin
+  perform copinha_private.validate_logo(p_logo);
+  if clean_team_instagram is not null and clean_team_instagram !~ '^[A-Za-z0-9._]{1,30}$'
+    or clean_representative_instagram is not null and clean_representative_instagram !~ '^[A-Za-z0-9._]{1,30}$' then
+    raise exception 'Informe um Instagram válido ou deixe o campo em branco.';
+  end if;
+  select * into registration from public.save_registration(
+    p_team_name, p_representative, p_phone, p_players, p_revision
+  );
+  update public.registrations
+    set team_instagram = clean_team_instagram,
+        representative_instagram = clean_representative_instagram,
+        logo = p_logo
+    where id = registration.id
+    returning * into registration;
+  return registration;
+end;
+$$;
+
 create or replace function public.save_organizer_contact(
   p_phone text, p_instagram text, p_email text, p_revision integer
 )
@@ -141,9 +180,12 @@ begin
 end;
 $$;
 
-revoke all on function public.save_organizer_contact(text, text, text, integer)
+revoke all on function public.save_registration_with_logo(text, text, text, jsonb, integer, text, text, text),
+  public.save_organizer_contact(text, text, text, integer)
   from public, anon, authenticated;
 grant execute on function public.save_organizer_contact(text, text, text, integer)
+  to authenticated;
+grant execute on function public.save_registration_with_logo(text, text, text, jsonb, integer, text, text, text)
   to authenticated;
 
 notify pgrst, 'reload schema';
