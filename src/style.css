@@ -15,6 +15,7 @@
 }
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; min-width: 300px; }
+html { scroll-behavior: smooth; }
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -120,7 +121,7 @@ p { color: var(--muted); line-height: 1.55; }
 .dashboard-title { background: radial-gradient(ellipse at 85% 10%, #771f3b, transparent 65%), linear-gradient(115deg, #29111c, #50162a); color: #fff8ec; }
 .title-inner { display: flex; justify-content: space-between; align-items: end; gap: 20px; padding-block: 36px; }
 .eyebrow { text-transform: uppercase; font-weight: 720; letter-spacing: .12em; font-size: .84rem; color: var(--gold); }
-.title-inner h1 { font-size: clamp(2.05rem, 5.2vw, 3.6rem); line-height: 1.05; margin-top: 6px; letter-spacing: -.055em; overflow-wrap: anywhere; }
+.title-inner h1 { font-size: clamp(2.05rem, 5.2vw, 3.6rem); line-height: 1.05; margin-top: 6px; letter-spacing: 0.05em; overflow-wrap: anywhere; }
 .title-inner p { color: #f0d8d4; margin-top: 9px; }
 .title-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 0 0 auto; }
 .dashboard { display: grid; gap: 16px; padding-block: 26px 46px; align-content: start; }
@@ -285,3 +286,160 @@ fieldset { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: grid; 
   .nav { gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { .sponsor-slide { animation: none; } }
+
+.screen-enter { animation: screen-enter .42s cubic-bezier(.22, .8, .25, 1) both; transform-origin: center top; }
+@keyframes screen-enter {
+  from { opacity: 0; transform: translateX(34px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .screen-enter { animation: none; }
+}
+
+/* Visual refresh: preserve the grená, dourado and bege palette while giving the
+   interface the rounded, layered language of the new campaign references. */
+:root {
+  font-family: "neutronic-rounded", "Aptos", "Segoe UI", system-ui, sans-serif;
+  background: #f4eee7;
+  --ink: #27141c;
+  --muted: #715f62;
+  --wine: #691b32;
+  --wine-dark: #451021;
+  --gold: #e8bd6d;
+  --paper: #fffdfa;
+  --line: #eadfd4;
+  --shadow: 0 18px 45px #4b1b2a14;
+  --round-xl: 32px;
+  --round-lg: 24px;
+  --round-md: 16px;
+}
+
+body { background: #f4eee7; }
+h1, h2, h3, .button, .eyebrow, .count, .badge, .field > label,
+.field > span:first-child, .player-index, .sponsor-title h2 {
+  font-family: "neutronic-rounded", "Aptos", "Segoe UI", system-ui, sans-serif;
+}
+h1, h2, h3 { font-weight: 700; }
+.hero h1, .title-inner h1 { font-family: "neutronic-rounded-black", "neutronic-rounded", sans-serif; font-weight: 900; }
+
+.site-header {
+  background: var(--wine);
+  border-bottom: 0;
+  box-shadow: 0 6px 0 #e8bd6d;
+  position: relative;
+  z-index: 2;
+}
+.nav { height: 82px; }
+.brand-home .brand-logo { width: 176px; }
+.nav nav { gap: 6px; }
+.button { border-radius: 999px; min-height: 48px; padding-inline: 19px; font-weight: 700; }
+.button.primary { background: var(--wine); box-shadow: 0 5px 0 var(--wine-dark); }
+.button.primary:hover:not(:disabled) { background: #7b2340; transform: translateY(-1px); }
+.button.secondary { background: #fffaf4; border: 2px solid #e4cdbd; color: var(--wine-dark); }
+.button.secondary:hover:not(:disabled) { background: #f8eadc; border-color: var(--gold); }
+.button.nav-link { border-radius: 999px; min-height: 42px; color: #fff6e9; }
+.button.nav-link:hover { background: #ffffff1c; }
+.button.ghost { border-radius: 999px; }
+
+.hero {
+  min-height: 465px;
+  border: 0;
+  background: var(--wine);
+  border-radius: 0 0 52px 52px;
+}
+.hero::after { display: none; }
+.court-art::before {
+  background: radial-gradient(circle at 50% 15%, #e8bd6d26, transparent 35%), #691b32;
+}
+.court-art::after { background: linear-gradient(90deg, #45102165, transparent 45% 55%, #45102165); }
+.court-lines { opacity: .42; border-color: #e8bd6d; box-shadow: 0 0 0 18px #e8bd6d0d; }
+.court-lines::before, .court-lines::after, .court-lines i, .court-lines b { border-color: #e8bd6d; }
+.hero-inner { padding-block: 54px 48px; }
+.hero-kicker { color: var(--gold); font-size: .78rem; letter-spacing: .24em; }
+.hero-logo { margin: -12px auto -14px; filter: drop-shadow(0 15px 0 #451021); }
+.hero h1 { font-size: clamp(2.65rem, 5.8vw, 4.8rem); letter-spacing: 0.05em; }
+.hero p { color: #f8e9d9; font-size: 1.08rem; }
+.hero-meta { margin-top: 28px; }
+.hero-meta span { background: #fffaf41c; border: 2px solid #e8bd6d8a; border-radius: 999px; padding: 9px 15px; }
+
+.demo-bar { background: var(--gold); border: 0; color: var(--wine-dark); }
+.demo-bar .container { min-height: 43px; }
+.landing { gap: 48px; padding-block: 52px 72px; }
+.card { border: 0; border-radius: var(--round-xl); box-shadow: var(--shadow); }
+.access-card { padding: 34px; position: relative; overflow: hidden; }
+.access-card::after {
+  content: ""; position: absolute; width: 150px; height: 150px; right: -48px; top: -58px;
+  border-radius: 50%; background: #e8bd6d38;
+}
+.section-icon { width: 48px; height: 48px; border-radius: 16px; background: #f3dfcf; color: var(--wine); }
+.access-card h2 { font-size: clamp(1.6rem, 3vw, 2.25rem); }
+.access-actions { gap: 13px; }
+.access-card .access-foot { border-top: 2px solid var(--line); }
+.registration-info { padding: 16px 6px 0; }
+.registration-info > h2 { font-size: 1.55rem; }
+.info-row { padding: 17px 0; gap: 16px; }
+.info-row + .info-row { border-top: 2px solid var(--line); }
+.info-row .section-icon { width: 42px; height: 42px; border: 0; background: #ead8c6; }
+
+.dashboard-title {
+  background: var(--wine);
+  border-radius: 0 0 38px 38px;
+}
+.title-inner { padding-block: 48px 42px; }
+.title-inner h1 { font-size: clamp(2.35rem, 5.6vw, 4.1rem); }
+.eyebrow { color: var(--gold); }
+.dashboard { padding-block: 34px 64px; gap: 20px; }
+.status-strip, .notice { border-radius: var(--round-lg); }
+.status-strip { padding: 18px 23px; }
+.badge { border-radius: 999px; padding: 8px 12px; }
+.notice { border-width: 2px; }
+
+.form-card { padding: 28px; border-radius: var(--round-lg); }
+.form-heading { margin-bottom: 22px; }
+.form-heading h2, .team-review h2 { font-size: 1.5rem; }
+.field input, .field select {
+  min-height: 50px; border: 2px solid #e7d9cf; border-radius: 14px; background: #fffdfa; padding-inline: 14px;
+}
+.field input:focus, .field select:focus { border-color: var(--gold); box-shadow: 0 0 0 4px #e8bd6d38; outline: 0; }
+.player-row { gap: 10px; }
+.player-index { color: var(--wine); }
+.icon-button { border: 2px solid #ead7ca; border-radius: 14px; background: #fbf1e8; }
+.count { border-radius: 999px; background: #f1dfc9; padding: 8px 11px; }
+.logo-picker { border: 2px dashed #dfc7b3; border-radius: var(--round-md); background: #fffaf5; padding: 16px; }
+.team-emblem, .team-emblem.placeholder { border-radius: 18px; }
+.team-form { gap: 20px; }
+.form-end { padding: 4px 4px; }
+
+.team-item { border: 2px solid var(--line); border-radius: 16px; background: #fffaf5; padding: 13px 15px; }
+.team-item:hover, .team-item.selected { border-color: var(--gold); background: #f8eadb; }
+.roster { border-radius: var(--round-lg); padding: 20px 22px; }
+.roster li { padding-block: 10px; border-top: 2px solid var(--line); }
+
+.public-section { padding-top: 18px; }
+.section-title { margin-bottom: 20px; }
+.section-title .section-icon { border-radius: 15px; }
+.confirmed-card { border-radius: var(--round-lg); padding: 16px; }
+.rules, .organizer { border-radius: var(--round-xl); padding: 28px; }
+.rules details { border-bottom: 2px solid var(--line); padding-block: 14px; }
+.rules > .button, .organizer > .button { margin-top: 16px; }
+
+.sponsors-footer { background: var(--wine); border: 0; }
+.sponsor-inner { padding-block: 25px; }
+.sponsor-title h2 { color: var(--gold); }
+.sponsor-controls .button { min-height: 40px; }
+.site-footer { background: #eadcca; border-top: 0; }
+
+@media (max-width: 650px) {
+  .nav { height: 68px; }
+  .brand-home .brand-logo { width: 124px; }
+  .hero { border-radius: 0 0 32px 32px; }
+  .hero-inner { padding-block: 42px 38px; }
+  .hero-logo { margin: 0 auto 4px; }
+  .landing { padding-block: 30px 46px; gap: 30px; }
+  .access-card { padding: 25px 22px; border-radius: 25px; }
+  .form-card, .rules, .organizer { padding: 22px 18px; border-radius: 22px; }
+  .dashboard-title { border-radius: 0 0 28px 28px; }
+  .title-inner { padding-block: 35px 32px; }
+}

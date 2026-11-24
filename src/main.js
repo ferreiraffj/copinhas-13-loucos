@@ -42,12 +42,17 @@ function loadDraft() {
   state.logoErrors.team = ''
 }
 
-function draw(focus) {
+function draw(focus, animate = false) {
   if (widgetId !== undefined) {
     window.turnstile.remove(widgetId)
     widgetId = undefined
   }
   app.innerHTML = renderApp(state)
+  if (animate) {
+    app.classList.remove('screen-enter')
+    void app.offsetWidth
+    app.classList.add('screen-enter')
+  }
   showDraftIssues()
   if (focus) document.querySelector(focus)?.focus()
 }
@@ -61,7 +66,7 @@ function reportError(error, fallback) {
   report(details && error.message ? error.message : fallback, 'error')
 }
 
-function navigate(screen) {
+function navigate(screen, animate = false) {
   state.screen = screen
   state.message = null
   state.challenge = false
@@ -69,7 +74,7 @@ function navigate(screen) {
     if (data.configured) void refreshPublic()
     else state.publicTeams = state.teams.filter(team => team.status === 'confirmed')
   }
-  draw('#conteudo')
+  draw('#conteudo', animate)
   window.scrollTo(0, 0)
 }
 
@@ -183,7 +188,7 @@ async function openTeam() {
   }
   state.loading = data.configured
   loadDraft()
-  navigate('team')
+  navigate('team', true)
   if (!data.configured) return
   try {
     const [settings, own] = await Promise.all([data.settings(), data.ownRegistration(state.session.user.id)])
@@ -202,24 +207,24 @@ async function openTeam() {
 async function openAdmin() {
   if (!mayLeave()) return
   if (data.configured && (!state.session || state.session.user.is_anonymous)) {
-    navigate('admin-gate')
+    navigate('admin-gate', true)
     return
   }
   if (!data.configured) {
-    navigate('admin')
+    navigate('admin', true)
     return
   }
   state.loading = true
   state.screen = 'admin-gate'
   state.message = null
-  draw()
+  draw(undefined, true)
   try {
     if (!await data.isMaster()) {
-      navigate('admin-gate')
+      navigate('admin-gate', true)
       return
     }
     state.screen = 'admin'
-    draw()
+    draw(undefined, true)
     const [settings, teams, sponsors] = await Promise.all([
       data.settings(), data.allRegistrations(), data.sponsors().catch(() => null),
     ])
@@ -477,9 +482,9 @@ const actions = {
   },
   about() {
     if (!mayLeave()) return
-    if (state.screen !== 'home') navigate('home')
+    if (state.screen !== 'home') navigate('home', true)
     document.querySelector('#about-title').focus({ preventScroll: true })
-    document.querySelector('#sobre').scrollIntoView()
+    document.querySelector('#sobre').scrollIntoView({ behavior: 'smooth', block: 'start' })
   },
   team: openTeam,
   'sponsor-prev': () => slideSponsor(-1),
