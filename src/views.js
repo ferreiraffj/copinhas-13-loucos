@@ -29,13 +29,13 @@ function hero(settings) {
   return `<section class="hero">
     <div class="court-art" aria-hidden="true"><div class="court-lines"><i></i><b></b></div></div>
     <div class="container hero-inner">
-      <div class="hero-kicker"><span></span> FUTSAL DE BASE <span></span></div>
+      <div class="hero-kicker"><span></span> TORNEIO DE FUTSAL <span></span></div>
       <div class="hero-logo">${logo}</div>
-      <h1>Inscrições de equipes</h1>
-      <p>Inscrição gratuita para equipes do futsal de base.</p>
+      <h1>Formulário de inscrição</h1>
+      <p>Inscrição 100% gratuita. Permitido jogadores Sub 12 a Sub 14, com apenas 2 Sub 15 por equipe.</p>
       <div class="hero-meta">
         <span>${icon('calendar')}${settings && closed(settings) ? 'Inscrições encerradas' : settings ? `Até ${deadlineDay(settings.edit_deadline)}` : 'Consulte o prazo de inscrição'}</span>
-        <span>${icon('pin')}Quadra da Praça do KM40</span>
+        <span>${icon('pin')}Quadra da Praça - Jardim América, KM40 - Itaquá</span>
       </div>
     </div>
   </section>`
@@ -55,7 +55,7 @@ function accessCard(state) {
   return `<section class="card access-card">
     <div class="section-icon">${icon('note')}</div>
     <h2>${state.session ? 'Acompanhe sua inscrição' : 'Inscreva sua equipe'}</h2>
-    <p>${ended && configured ? 'Entre para consultar uma inscrição existente.' : 'Cadastre o representante adulto e monte a relação de atletas da sua equipe.'}</p>
+    <p>${ended && configured ? 'Entre para consultar uma inscrição existente.' : 'Cadastre o representante e monte a relação de atletas da sua equipe.'}</p>
     <div class="access-actions">
       ${state.session ? button('Abrir minha equipe', 'team', { busy: state.busy }) : configured
         ? `${button('Continuar com Google', 'google', {symbol: google, busy: state.busy})}
