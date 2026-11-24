@@ -7,6 +7,7 @@ import { closed, renderApp } from './views.js'
 
 const app = document.querySelector('#app')
 const intentKey = 'copinha:auth-intent'
+const registrationDraftKey = 'copinha:registration-draft'
 const demoTeams = structuredClone(data.exampleTeams)
 const state = {
   screen: 'home', settings: data.initialSettings, session: null, own: null,
@@ -27,8 +28,49 @@ function emptyDraft() {
   return { team_name: '', representative_name: '', representative_phone: '', team_instagram: '', representative_instagram: '', logo: null, players: Array.from({ length: 5 }, blankPlayer) }
 }
 
+function storedDraft() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(registrationDraftKey) ?? 'null')
+    if (!saved || !Array.isArray(saved.players) || !saved.players.length) return null
+    return {
+      ...emptyDraft(),
+      ...saved,
+      players: saved.players.map(player => ({ name: String(player?.name ?? ''), year: String(player?.year ?? '') })),
+    }
+  } catch {
+    return null
+  }
+}
+
+function persistDraft() {
+  if (!state.draft) return
+  const value = {
+    team_name: state.draft.team_name,
+    representative_name: state.draft.representative_name,
+    representative_phone: state.draft.representative_phone,
+    team_instagram: state.draft.team_instagram,
+    representative_instagram: state.draft.representative_instagram,
+    logo: state.draft.logo,
+    players: state.draft.players,
+  }
+  try {
+    localStorage.setItem(registrationDraftKey, JSON.stringify(value))
+  } catch {
+    try {
+      localStorage.setItem(registrationDraftKey, JSON.stringify({ ...value, logo: null }))
+    } catch {
+      // The in-memory draft still works when browser storage is unavailable.
+    }
+  }
+}
+
+function clearPersistedDraft() {
+  try { localStorage.removeItem(registrationDraftKey) } catch { /* Storage may be disabled. */ }
+}
+
 function loadDraft() {
-  state.draft = state.own ? {
+  const saved = storedDraft()
+  const serverDraft = state.own ? {
     team_name: state.own.team_name,
     representative_name: state.own.representative_name,
     representative_phone: phone(state.own.representative_phone),
@@ -37,7 +79,8 @@ function loadDraft() {
     players: structuredClone(state.own.players),
     logo: state.own.logo ?? null,
   } : emptyDraft()
-  state.dirty = false
+  state.draft = saved ?? serverDraft
+  state.dirty = Boolean(saved)
   state.touched.clear()
   state.submitted = false
   state.logoErrors.team = ''
@@ -118,6 +161,7 @@ function showIssue(key, message) {
 
 function markDirty() {
   state.dirty = true
+  persistDraft()
   const note = document.querySelector('#draft-note')
   if (note) note.textContent = 'Alterações ainda precisam ser salvas.'
 }
@@ -398,6 +442,7 @@ async function submitRegistration() {
     }
     updateDemoTeam(state.own)
   }
+  clearPersistedDraft()
   loadDraft()
   report(existing?.status === 'confirmed' && state.own.status === 'pending'
     ? 'Alterações salvas. A organização precisa conferir a inscrição atualizada.'
