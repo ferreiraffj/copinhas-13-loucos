@@ -125,7 +125,7 @@ function imagePicker(kind, item, error, busy) {
   </div>`
 }
 
-function playerRow(player, index, length) {
+function playerRow(player, index, length, availableYears) {
   return `<div class="player-row"><span class="player-index" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
     <div class="field">
       <label class="sr-only" for="name-${index}">Nome completo do atleta ${index + 1}</label>
@@ -134,7 +134,7 @@ function playerRow(player, index, length) {
     </div>
     <div class="field select-field">
       <label class="sr-only" for="year-${index}">Ano de nascimento do atleta ${index + 1}</label>
-      <div class="select-control"><select id="year-${index}" data-player="${index}" data-field="year" data-issue="year-${index}" aria-describedby="issue-year-${index}" required><option value="">Ano de nascimento</option>${years.map(year => `<option value="${year}" ${Number(player.year) === year ? 'selected' : ''}>${year}</option>`).join('')}</select>${icon('down')}</div>
+      <div class="select-control"><select id="year-${index}" data-player="${index}" data-field="year" data-issue="year-${index}" aria-describedby="issue-year-${index}" required><option value="">Ano de nascimento</option>${availableYears.map(year => `<option value="${year}" ${Number(player.year) === year ? 'selected' : ''}>${year}</option>`).join('')}</select>${icon('down')}</div>
       ${fieldError('year-' + index)}
     </div>
     <button type="button" class="icon-button" aria-label="Remover atleta ${index + 1}" title="Remover atleta" data-action="remove-player" data-index="${index}" ${length === 1 ? 'disabled' : ''}>${icon('trash')}</button>
@@ -145,6 +145,7 @@ function team(state) {
   const { own, draft, settings, session, busy, loading, dirty } = state
   const ended = closed(settings)
   const locked = !settings || ended
+  const availableYears = settings?.birth_years ?? years
   return `${dashboardTitle('Área da equipe', own ? escape(own.team_name) : 'Inscrição da equipe', 'Monte o elenco e acompanhe a confirmação da organização.', authActions(state))}
   <main id="conteudo" class="container dashboard" tabindex="-1">
     ${loading ? '<p class="card loading" role="status">Carregando inscrição…</p>' : `
@@ -170,7 +171,7 @@ function team(state) {
           <div class="form-heading spread"><div class="form-heading"><span class="section-icon">${icon('people')}</span><div><h2>Elenco</h2><p>Preencha de 5 a 15 vagas. Até 2 atletas nascidos em 2011.</p></div></div><span class="count">${draft.players.length}/15 vagas</span></div>
           <fieldset ${busy ? 'disabled' : ''}>
             ${fieldError('roster')}
-            <div class="player-list">${draft.players.map((player, index) => playerRow(player, index, draft.players.length)).join('')}</div>
+            <div class="player-list">${draft.players.map((player, index) => playerRow(player, index, draft.players.length, availableYears)).join('')}</div>
             ${button('Adicionar atleta', 'add-player', {kind: 'secondary', symbol: icon('plus'), busy: draft.players.length === 15})}
           </fieldset>
         </section>
@@ -227,6 +228,14 @@ function admin(state) {
       ${state.settings ? `<section class="card form-card settings-card">
         <div class="form-heading"><span class="section-icon">${icon('clock')}</span><div><h2>Prazo da competição</h2><p>Data limite para enviar ou editar elencos · horário de Brasília.</p></div></div>
         <form id="deadline-form" class="inline-form"><label class="field"><span>Encerramento</span><input type="datetime-local" name="deadline" value="${deadlineInput(state.settings.edit_deadline)}" required></label><button type="submit" class="button primary" ${state.busy ? 'disabled' : ''}>Salvar prazo</button></form>
+      </section>` : ''}
+      ${state.settings ? `<section class="card form-card settings-card">
+        <div class="form-heading"><span class="section-icon">${icon('people')}</span><div><h2>Anos de nascimento</h2><p>Defina quais anos podem ser inscritos no campeonato.</p></div></div>
+        <form id="birth-years-form" class="inline-form">
+          ${input('Anos aceitos', 'birth_years', state.birthYearsDraft ?? (state.settings.birth_years ?? years).join(', '), 'required inputmode="numeric" placeholder="2011, 2012, 2013, 2014"')}
+          <button type="submit" class="button primary" ${state.busy ? 'disabled' : ''}>Salvar anos</button>
+        </form>
+        <p class="field-help settings-help">Separe os anos por vírgulas. Exemplo: 2012, 2013, 2014.</p>
       </section>` : ''}
       ${adminList(state)}
       ${adminExtras(state)}`}

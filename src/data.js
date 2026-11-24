@@ -14,7 +14,7 @@ const deadline = '2026-12-10T23:59:59-03:00'
 export function demoSettings() {
   const upcoming = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   upcoming.setUTCSeconds(0, 0)
-  return { edit_deadline: upcoming.toISOString(), revision: 1 }
+  return { edit_deadline: upcoming.toISOString(), birth_years: [2011, 2012, 2013, 2014], revision: 1 }
 }
 
 const examplePlayers = [
@@ -31,7 +31,7 @@ export const exampleTeams = [
   { id: 'atletico', team_name: 'Atlético do Bairro', representative_name: 'João Martins', representative_phone: '11900000003', status: 'ineligible', players: examplePlayers.map(player => ({ ...player, name: player.name.replace(/ .*/, ' Alves') })), revision: 1 },
 ]
 
-export const initialSettings = configured ? null : { edit_deadline: deadline, revision: 1 }
+export const initialSettings = configured ? null : { edit_deadline: deadline, birth_years: [2011, 2012, 2013, 2014], revision: 1 }
 
 function result({ data, error }) {
   if (error) throw error
@@ -44,7 +44,7 @@ async function mutation(name, values) {
 }
 
 export async function settings() {
-  return result(await supabase.from('tournament_settings').select('edit_deadline, contact_phone, contact_instagram, contact_email, revision').eq('id', 1).single())
+  return result(await supabase.from('tournament_settings').select('edit_deadline, birth_years, contact_phone, contact_instagram, contact_email, revision').eq('id', 1).single())
 }
 
 export async function isMaster() {
@@ -67,7 +67,7 @@ export async function allRegistrations() {
 }
 
 export function saveRegistration(draft, revision) {
-  return mutation('save_registration_with_logo', {
+  return mutation('save_registration_with_instagram', {
     p_team_name: draft.team_name,
     p_representative: draft.representative_name,
     p_phone: draft.representative_phone,
@@ -85,6 +85,10 @@ export function saveStatus(id, status, revision) {
 
 export function saveDeadline(deadline, revision) {
   return mutation('set_edit_deadline', { p_deadline: deadline, p_revision: revision })
+}
+
+export function saveBirthYears(birthYears, revision) {
+  return mutation('save_birth_years', { p_birth_years: birthYears, p_revision: revision })
 }
 
 export async function confirmedTeams() {

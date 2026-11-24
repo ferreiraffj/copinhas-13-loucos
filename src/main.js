@@ -1,6 +1,6 @@
 import './style.css'
 import * as data from './data.js'
-import { blankPlayer, draftIssues, normalizeName, phone, phoneDigits, validPhone } from './format.js'
+import { blankPlayer, draftIssues, normalizeName, phone, phoneDigits, validPhone, years } from './format.js'
 import { readLogo } from './logo.js'
 import { confirmedSection, firstSponsor, footer } from './public-content.js'
 import { closed, renderApp } from './views.js'
@@ -15,6 +15,7 @@ const state = {
   publicTeamsFailed: false, sponsors: data.configured ? null : [{ ...firstSponsor }],
   sponsorDraft: { name: '', logo: null }, sponsorIndex: 0, contactDraft: null,
   contactInstagramDraft: null, contactEmailDraft: null,
+  birthYearsDraft: null,
   sponsorPaused: matchMedia('(prefers-reduced-motion: reduce)').matches,
   logoErrors: { team: '', sponsor: '' }, logoRequest: null, touched: new Set(), submitted: false,
   draft: null, dirty: false, busy: false, loading: false, message: null, challenge: false,
@@ -96,7 +97,7 @@ async function refreshPublic(updateView = true) {
 function showDraftIssues() {
   const form = document.querySelector('#registration-form')
   if (!form) return
-  const issues = draftIssues(state.draft)
+  const issues = draftIssues(state.draft, state.settings?.birth_years ?? years)
   for (const field of form.querySelectorAll('[data-issue]')) {
     const key = field.dataset.issue
     const value = state.submitted || state.touched.has(key) ? issues[key] : ''
@@ -234,6 +235,7 @@ async function openAdmin() {
     state.contactDraft = null
     state.contactInstagramDraft = null
     state.contactEmailDraft = null
+    state.birthYearsDraft = null
     window.scrollTo(0, 0)
   } catch (error) {
     state.teams = []
@@ -429,6 +431,23 @@ async function submitDeadline(form) {
   report('Prazo atualizado no horário de Brasília.')
 }
 
+async function submitBirthYears(form) {
+  const values = [...new Set(form.elements.birth_years.value
+    .split(',')
+    .map(value => Number(value.trim()))
+    .filter(Number.isInteger))]
+  if (!values.length || values.some(year => year < 1900 || year > 2100)) {
+    throw new Error('Informe pelo menos um ano válido entre 1900 e 2100.')
+  }
+  values.sort((a, b) => a - b)
+  const revision = state.settings.revision
+  state.settings = data.configured
+    ? await data.saveBirthYears(values, revision)
+    : { ...state.settings, birth_years: values, revision: revision + 1 }
+  state.birthYearsDraft = null
+  report('Anos de nascimento atualizados.')
+}
+
 async function submitContact(form) {
   const entered = form.elements.contact_phone.value
   const instagram = form.elements.contact_instagram.value.trim().replace(/^@+/, '') || null
@@ -579,6 +598,10 @@ app.addEventListener('input', event => {
     state.contactEmailDraft = field.value
     return
   }
+  if (field.name === 'birth_years') {
+    state.birthYearsDraft = field.value
+    return
+  }
   if (field.name === 'sponsor_name') state.sponsorDraft.name = field.value
   if (field.form?.id !== 'registration-form') return
   if (field.dataset.player !== undefined) {
@@ -614,13 +637,13 @@ app.addEventListener('submit', async event => {
   if (form.id === 'registration-form') {
     state.submitted = true
     showDraftIssues()
-    if (Object.keys(draftIssues(state.draft)).length) {
+    if (Object.keys(draftIssues(state.draft, state.settings?.birth_years ?? years)).length) {
       const invalid = form.querySelector('[aria-invalid="true"]:not([type="file"])') ?? form.querySelector('#issue-roster')
       invalid?.focus()
       return
     }
   }
-  const handler = { 'registration-form': submitRegistration, 'status-form': submitStatus, 'deadline-form': submitDeadline, 'contact-form': submitContact, 'sponsor-form': submitSponsor }[form.id]
+  const handler = { 'registration-form': submitRegistration, 'status-form': submitStatus, 'deadline-form': submitDeadline, 'birth-years-form': submitBirthYears, 'contact-form': submitContact, 'sponsor-form': submitSponsor }[form.id]
   if (!handler) return
   state.busy = true
   state.message = null

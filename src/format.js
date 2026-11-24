@@ -49,7 +49,7 @@ export function athleteKey(player) {
 }
 
 
-export function draftIssues(draft) {
+export function draftIssues(draft, allowedYears = years) {
   const issues = {}
   if (draft.team_name.trim().length < 2) issues.team_name = 'Informe o nome da equipe.'
   if (normalizeName(draft.representative_name).length < 3) issues.representative_name = 'Informe o nome do representante adulto.'
@@ -63,10 +63,10 @@ export function draftIssues(draft) {
     const year = Number(player.year)
     const key = athleteKey(player)
     if (name.length < 3) issues['name-' + index] = 'Informe o nome do atleta.'
-    else if (years.includes(year) && seen.has(key)) issues['name-' + index] = 'Este atleta já consta no elenco.'
-    if (!years.includes(year)) issues['year-' + index] = 'Selecione o ano de nascimento.'
+    else if (allowedYears.includes(year) && seen.has(key)) issues['name-' + index] = 'Este atleta já consta no elenco.'
+    if (!allowedYears.includes(year)) issues['year-' + index] = 'Selecione um ano de nascimento válido.'
     if (year === 2011 && ++oldest > 2) issues['year-' + index] = 'O limite de 2 atletas de 2011 foi atingido.'
-    if (years.includes(year)) seen.add(key)
+    if (allowedYears.includes(year)) seen.add(key)
   })
   return issues
 }
