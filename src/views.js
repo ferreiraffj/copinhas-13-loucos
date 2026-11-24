@@ -79,7 +79,7 @@ function landing(state) {
           <h3>Prazo de inscrição e edição</h3><p>${deadlineLabel(state.settings)}${state.settings ? ' · horário de Brasília' : ''}</p>
         </div></div>
         <div class="info-row"><span class="section-icon">${icon('people')}</span><div>
-          <h3>De 5 a 15 atletas por equipe</h3><p>Nascidos de 2012 a 2014. Até dois atletas de 2011 por equipe.</p>
+          <h3>De 5 a 15 atletas por equipe</h3><p>Nascidos de 2012 a 2015. Até dois atletas de 2011 por equipe.</p>
         </div></div>
         <div class="info-row"><span class="section-icon">${icon('shield')}</span><div>
           <h3>Autorizações com a organização</h3><p>Entregue as autorizações assinadas conforme as orientações da organização e acompanhe o status aqui.</p>
