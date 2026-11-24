@@ -194,7 +194,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: grid; 
 
 .site-footer { margin-top: auto; border-top: 1px solid #e4dacf; background: #eee6dd; color: #64505a; font-size: .91rem; }
 .footer-inner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-block: 19px; }
-.site-footer strong { color: #412333; }
+.footer-inner strong { color: #412333; }
 
 @media (max-width: 830px) {
   .landing { gap: 20px; }
@@ -232,3 +232,56 @@ fieldset { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: grid; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
+
+.field > label { font-size: .88rem; font-weight: 650; }
+.field-help, .field-error { line-height: 1.4; font-size: .875rem; }
+.field-help { color: var(--muted); }
+.field-error { color: #8e263b; font-weight: 650; }
+.field [aria-invalid="true"] { border-color: #a53851; background: #fff5f6; }
+.player-row { align-items: start; }
+.player-index { padding-top: 12px; }
+.select-control { position: relative; }
+.select-control > .icon { position: absolute; right: 11px; top: 14px; width: 16px; height: 16px; color: var(--wine); pointer-events: none; }
+.logo-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; }
+.logo-picker > .field { flex: 1 1 230px; }
+.logo-picker input::file-selector-button { font: inherit; cursor: pointer; background: #f5e7e3; color: var(--wine-dark); border: 0; border-radius: 5px; padding: 4px 8px; margin-right: 8px; }
+.team-emblem { object-fit: contain; flex: 0 0 auto; width: 64px; height: 64px; aspect-ratio: 1; border-radius: 9px; }
+.team-emblem.placeholder { display: grid; place-items: center; background: #f5e7e3; color: var(--wine); }
+.roster-contact > div { flex: 1 1 auto; }
+.section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+.public-section { grid-column: 1 / -1; scroll-margin-top: 20px; padding-top: 6px; }
+.confirmed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; }
+.confirmed-card { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 13px; }
+.confirmed-card h3 { overflow-wrap: anywhere; }
+.confirmed-card .team-emblem { width: 48px; height: 48px; }
+.about-grid, .admin-settings { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.rules, .organizer { padding: 20px; }
+.rules details { border-bottom: 1px solid var(--line); padding: 11px 0; }
+.rules summary { cursor: pointer; font-weight: 700; }
+.rules details p { margin-top: 9px; }
+.rules > .button, .organizer > .button { margin-top: 14px; text-decoration: none; }
+.rules-note { margin-top: 10px; font-size: .88rem; }
+.organizer h3, .organizer p { margin-top: 10px; }
+.sponsors-footer { background: #29121d; color: #fff5e5; border-bottom: 1px solid #a36d4c; }
+.sponsor-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding-block: 19px; }
+.sponsor-title h2 { color: #f1cb84; font-size: 1.25rem; }
+.sponsor-slide { display: flex; gap: 12px; align-items: center; min-height: 82px; animation: sponsor-in .3s ease-out; }
+.sponsor-slide[hidden] { display: none; }
+.sponsor-slide img { width: 78px; height: 78px; object-fit: contain; }
+.sponsor-controls { display: flex; flex-wrap: wrap; gap: 6px; }
+.sponsor-controls .button { min-height: 36px; padding: 7px 10px; }
+.sponsor-list { list-style: none; padding: 0; margin: 0 0 12px; }
+.sponsor-list li { display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--line); padding: 8px 0; }
+.sponsor-list img { width: 42px; height: 42px; object-fit: contain; }
+.sponsor-list strong { flex: 1 1 auto; overflow-wrap: anywhere; }
+.sponsor-list button { min-width: 44px; }
+#sponsor-form { display: grid; gap: 10px; }
+#sponsor-form > button { justify-self: start; }
+@keyframes sponsor-in { from { opacity: .35; } to { opacity: 1; } }
+@media (max-width: 650px) {
+  .about-grid, .admin-settings { grid-template-columns: 1fr; }
+  .site-header .container { width: calc(100% - 20px); }
+  .brand-home .brand-logo { width: clamp(78px, 24vw, 115px); }
+  .nav { gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .sponsor-slide { animation: none; } }

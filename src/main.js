@@ -1,20 +1,28 @@
 import './style.css'
 import * as data from './data.js'
-import { blankPlayer, normalizeName, phone, validDraft } from './format.js'
+import { blankPlayer, draftIssues, normalizeName, phone, phoneDigits, validPhone } from './format.js'
+import { readLogo } from './logo.js'
+import { confirmedSection, firstSponsor, footer } from './public-content.js'
 import { closed, renderApp } from './views.js'
 
 const app = document.querySelector('#app')
 const intentKey = 'copinha:auth-intent'
+const demoTeams = structuredClone(data.exampleTeams)
 const state = {
   screen: 'home', settings: data.initialSettings, session: null, own: null,
-  teams: data.configured ? [] : structuredClone(data.exampleTeams), filter: '', selected: '',
+  teams: data.configured ? [] : demoTeams, filter: '', selected: '',
+  publicTeams: data.configured ? null : demoTeams.filter(team => team.status === 'confirmed'),
+  publicTeamsFailed: false, sponsors: data.configured ? null : [{ ...firstSponsor }],
+  sponsorDraft: { name: '', logo: null }, sponsorIndex: 0, contactDraft: null,
+  sponsorPaused: matchMedia('(prefers-reduced-motion: reduce)').matches,
+  logoErrors: { team: '', sponsor: '' }, logoRequest: null, touched: new Set(), submitted: false,
   draft: null, dirty: false, busy: false, loading: false, message: null, challenge: false,
 }
 let turnstileLoad
 let widgetId
 
 function emptyDraft() {
-  return { team_name: '', representative_name: '', representative_phone: '', players: Array.from({ length: 5 }, blankPlayer) }
+  return { team_name: '', representative_name: '', representative_phone: '', logo: null, players: Array.from({ length: 5 }, blankPlayer) }
 }
 
 function loadDraft() {
@@ -23,8 +31,12 @@ function loadDraft() {
     representative_name: state.own.representative_name,
     representative_phone: phone(state.own.representative_phone),
     players: structuredClone(state.own.players),
+    logo: state.own.logo ?? null,
   } : emptyDraft()
   state.dirty = false
+  state.touched.clear()
+  state.submitted = false
+  state.logoErrors.team = ''
 }
 
 function draw(focus) {
@@ -33,6 +45,7 @@ function draw(focus) {
     widgetId = undefined
   }
   app.innerHTML = renderApp(state)
+  showDraftIssues()
   if (focus) document.querySelector(focus)?.focus()
 }
 
@@ -49,8 +62,110 @@ function navigate(screen) {
   state.screen = screen
   state.message = null
   state.challenge = false
+  if (screen === 'home') {
+    if (data.configured) void refreshPublic()
+    else state.publicTeams = state.teams.filter(team => team.status === 'confirmed')
+  }
   draw('#conteudo')
   window.scrollTo(0, 0)
+}
+
+async function refreshPublic(updateView = true) {
+  const [teams, sponsors] = await Promise.allSettled([data.confirmedTeams(), data.sponsors()])
+  state.publicTeamsFailed = teams.status === 'rejected'
+  if (teams.status === 'fulfilled') state.publicTeams = teams.value
+  if (sponsors.status === 'fulfilled') state.sponsors = sponsors.value
+  if (updateView && state.screen === 'home' && !state.challenge && !state.busy) {
+    const active = document.activeElement
+    const publicSection = document.querySelector('#equipes-confirmadas')
+    const footerElement = document.querySelector('.site-footer')
+    // Preserve focus and sign-in controls during public updates.
+    if (publicSection) publicSection.outerHTML = confirmedSection(state)
+    if (footerElement && !footerElement.contains(active)) footerElement.outerHTML = footer(state)
+  }
+}
+
+function showDraftIssues() {
+  const form = document.querySelector('#registration-form')
+  if (!form) return
+  const issues = draftIssues(state.draft)
+  for (const field of form.querySelectorAll('[data-issue]')) {
+    const key = field.dataset.issue
+    const value = state.submitted || state.touched.has(key) ? issues[key] : ''
+    if (value) field.setAttribute('aria-invalid', 'true')
+    else field.removeAttribute('aria-invalid')
+    showIssue(key, value)
+  }
+  showIssue('roster', state.submitted || state.touched.has('roster') ? issues.roster : '')
+}
+
+function showIssue(key, message) {
+  const slot = document.getElementById('issue-' + key)
+  if (!slot) return
+  const value = message ?? ''
+  if (slot.textContent !== value) slot.textContent = value
+  slot.hidden = !value
+}
+
+function markDirty() {
+  state.dirty = true
+  const note = document.querySelector('#draft-note')
+  if (note) note.textContent = 'Alterações ainda precisam ser salvas.'
+}
+
+function maskPhone(input) {
+  const digitsBeforeCaret = phoneDigits(input.value.slice(0, input.selectionStart)).length
+  const formatted = phone(input.value)
+  if (formatted === input.value) return
+  input.value = formatted
+  if (digitsBeforeCaret === 0) {
+    input.setSelectionRange(0, 0)
+    return
+  }
+  let position = 0
+  let seen = 0
+  while (position < formatted.length && seen < digitsBeforeCaret) {
+    if (/\d/.test(formatted[position])) seen++
+    position++
+  }
+  input.setSelectionRange(position, position)
+}
+
+async function selectLogo(input, kind) {
+  const file = input.files[0]
+  if (!file) return
+  if (state.busy) {
+    input.value = ''
+    return
+  }
+  const target = kind === 'team' ? state.draft : state.sponsorDraft
+  const request = {}
+  state.logoRequest = request
+  state.logoErrors[kind] = ''
+  input.setAttribute('aria-busy', 'true')
+  try {
+    const logo = await readLogo(file)
+    if (state.logoRequest !== request) return
+    target.logo = logo
+    if (kind === 'team' && target === state.draft) markDirty()
+  } catch (error) {
+    if (state.logoRequest === request) state.logoErrors[kind] = error.message
+  } finally {
+    if (state.logoRequest === request) {
+      state.logoRequest = null
+      if (input.isConnected) draw('#' + kind + '-logo')
+      else if (document.getElementById(kind + '-logo')) draw()
+    }
+  }
+}
+
+function slideSponsor(step) {
+  const length = state.sponsors?.length ?? 0
+  if (length < 2) return
+  state.sponsorIndex = (state.sponsorIndex % length + step + length) % length
+  document.querySelectorAll('.sponsor-slide').forEach((slide, index) => {
+    slide.hidden = index !== state.sponsorIndex
+  })
 }
 
 function mayLeave() {
@@ -102,9 +217,13 @@ async function openAdmin() {
     }
     state.screen = 'admin'
     draw()
-    const [settings, teams] = await Promise.all([data.settings(), data.allRegistrations()])
+    const [settings, teams, sponsors] = await Promise.all([
+      data.settings(), data.allRegistrations(), data.sponsors().catch(() => null),
+    ])
     state.settings = settings
     state.teams = teams
+    state.sponsors = sponsors
+    state.contactDraft = null
     window.scrollTo(0, 0)
   } catch (error) {
     state.teams = []
@@ -166,8 +285,13 @@ async function visitor(captchaToken) {
     if (result.error) throw result.error
     state.session = result.data.session
     await openTeam()
-  } catch {
-    report('Não foi possível entrar como visitante. Tente novamente ou entre com Google.', 'error')
+  } catch (error) {
+    const visitorErrors = {
+      anonymous_provider_disabled: 'A entrada como visitante está desativada. Entre com Google ou fale com a organização.',
+      signup_disabled: 'O cadastro de novos acessos está desativado. Fale com a organização.',
+      captcha_failed: 'Não foi possível verificar o CAPTCHA. Tente novamente ou entre com Google.',
+    }
+    report(visitorErrors[error.code] ?? 'Não foi possível entrar como visitante. Tente novamente ou entre com Google.', 'error')
   } finally {
     state.busy = false
     draw()
@@ -235,32 +359,28 @@ async function submitRegistration() {
     draw()
     return
   }
-  const invalid = validDraft(state.draft)
-  if (invalid) {
-    report(invalid, 'error')
-    draw()
-    return
-  }
   const draft = {
     team_name: state.draft.team_name.trim(),
     representative_name: state.draft.representative_name.trim(),
     representative_phone: state.draft.representative_phone.replace(/\D/g, ''),
+    logo: state.draft.logo,
     players: state.draft.players.map(player => ({ name: normalizeName(player.name), year: Number(player.year) })),
   }
   const existing = state.own
   if (data.configured) {
     state.own = await data.saveRegistration(draft, existing?.revision ?? 0)
   } else {
-    const changedRoster = JSON.stringify(draft.players) !== JSON.stringify(existing?.players) || draft.team_name !== existing?.team_name
+    const needsReview = JSON.stringify(draft.players) !== JSON.stringify(existing?.players)
+      || draft.team_name !== existing?.team_name || draft.logo !== existing?.logo
     state.own = {
       ...draft, id: 'preview-own', revision: (existing?.revision ?? 0) + 1,
-      status: existing?.status === 'confirmed' && changedRoster ? 'pending' : existing?.status ?? 'pending',
+      status: existing?.status === 'confirmed' && needsReview ? 'pending' : existing?.status ?? 'pending',
     }
     updateDemoTeam(state.own)
   }
   loadDraft()
   report(existing?.status === 'confirmed' && state.own.status === 'pending'
-    ? 'Alterações salvas. A organização precisa conferir o elenco atualizado.'
+    ? 'Alterações salvas. A organização precisa conferir a inscrição atualizada.'
     : existing ? 'Alterações salvas.' : 'Inscrição enviada. Agora entregue as autorizações à organização.')
 }
 
@@ -287,15 +407,80 @@ async function submitDeadline(form) {
   if (cutOff === current) return
   state.settings = data.configured
     ? await data.saveDeadline(cutOff, state.settings.revision)
-    : { edit_deadline: cutOff, revision: state.settings.revision + 1 }
+    : { ...state.settings, edit_deadline: cutOff, revision: state.settings.revision + 1 }
   report('Prazo atualizado no horário de Brasília.')
+}
+
+async function submitContact(form) {
+  const entered = form.elements.contact_phone.value
+  if (entered && !validPhone(entered)) throw new Error('Informe um WhatsApp válido com DDD.')
+  const contact = phoneDigits(entered) || null
+  const revision = state.settings.revision
+  state.settings = data.configured
+    ? await data.saveContact(contact, revision)
+    : { ...state.settings, contact_phone: contact, revision: revision + 1 }
+  state.contactDraft = null
+  report(contact ? 'WhatsApp da organização atualizado.' : 'WhatsApp removido da página pública.')
+}
+
+async function submitSponsor() {
+  if (!state.sponsorDraft.logo) throw new Error('Escolha a logo do patrocinador.')
+  if (state.sponsors.length >= 20) throw new Error('O rodapé comporta até 20 patrocinadores.')
+  const sponsor = data.configured
+    ? await data.addSponsor(state.sponsorDraft)
+    : { ...state.sponsorDraft, id: crypto.randomUUID() }
+  state.sponsors.push(sponsor)
+  state.sponsorDraft = { name: '', logo: null }
+  state.logoErrors.sponsor = ''
+  report('Patrocinador publicado no rodapé.')
+}
+
+async function deleteSponsor(button) {
+  if (!window.confirm('Remover este patrocinador do rodapé?')) return
+  state.busy = true
+  try {
+    const id = button.dataset.id
+    if (data.configured) await data.removeSponsor(id)
+    state.sponsors = state.sponsors.filter(sponsor => sponsor.id !== id)
+    state.sponsorIndex = 0
+    report('Patrocinador removido.')
+  } catch (error) {
+    reportError(error, 'Não foi possível remover o patrocinador.')
+  } finally {
+    state.busy = false
+    draw('#feedback .notice')
+  }
 }
 
 const actions = {
   home() {
     if (mayLeave()) navigate('home')
   },
+  about() {
+    if (!mayLeave()) return
+    if (state.screen !== 'home') navigate('home')
+    document.querySelector('#about-title').focus({ preventScroll: true })
+    document.querySelector('#sobre').scrollIntoView()
+  },
   team: openTeam,
+  'sponsor-prev': () => slideSponsor(-1),
+  'sponsor-next': () => slideSponsor(1),
+  'sponsor-toggle'(button) {
+    state.sponsorPaused = !state.sponsorPaused
+    button.textContent = state.sponsorPaused ? 'Reproduzir' : 'Pausar'
+  },
+  'remove-sponsor': deleteSponsor,
+  'clear-sponsor-logo'() {
+    state.sponsorDraft.logo = null
+    state.logoErrors.sponsor = ''
+    draw('#sponsor-logo')
+  },
+  'clear-team-logo'() {
+    state.draft.logo = null
+    state.logoErrors.team = ''
+    markDirty()
+    draw('#team-logo')
+  },
   admin: openAdmin,
   google: () => google('team'),
   'google-admin': () => google('admin'),
@@ -312,6 +497,14 @@ const actions = {
     const index = Number(button.dataset.index)
     if (state.draft.players.length <= 1) return
     state.draft.players.splice(index, 1)
+    state.touched = new Set([...state.touched].flatMap(key => {
+      const field = /^(name|year)-(\d+)$/.exec(key)
+      if (!field) return [key]
+      const row = Number(field[2])
+      if (row === index) return []
+      return [field[1] + '-' + (row > index ? row - 1 : row)]
+    }))
+    state.touched.add('roster')
     state.dirty = true
     const nextIndex = Math.min(index, state.draft.players.length - 1)
     draw(`[data-player="${nextIndex}"][data-field="name"]`)
@@ -324,36 +517,78 @@ const actions = {
 
 app.addEventListener('click', event => {
   const button = event.target.closest('[data-action]')
-  if (!button || state.busy || state.loading) return
+  if (!button || state.busy || state.loading || state.logoRequest) return
   const action = actions[button.dataset.action]
   if (action) void action(button)
 })
 
+app.addEventListener('beforeinput', event => {
+  const field = event.target
+  if (!field.matches('[data-phone]') || field.selectionStart !== field.selectionEnd) return
+  const start = field.selectionStart
+  const backward = event.inputType === 'deleteContentBackward'
+  const forward = event.inputType === 'deleteContentForward'
+  if (!backward && !forward) return
+  let index = backward ? start - 1 : start
+  if (!/[() -]/.test(field.value[index] ?? '')) return
+  while (index >= 0 && index < field.value.length && !/\d/.test(field.value[index])) index += backward ? -1 : 1
+  if (index < 0 || index >= field.value.length) return
+  event.preventDefault()
+  field.setRangeText('', index, index + 1, 'start')
+  field.dispatchEvent(new Event('input', { bubbles: true }))
+})
+
 app.addEventListener('input', event => {
   const field = event.target
+  if (field.type === 'file') return
+  if (field.matches('[data-phone]')) maskPhone(field)
+  if (field.name === 'contact_phone') {
+    state.contactDraft = field.value
+    showIssue('contact_phone', field.value && !validPhone(field.value) ? 'Informe um WhatsApp válido com DDD.' : '')
+    return
+  }
+  if (field.name === 'sponsor_name') state.sponsorDraft.name = field.value
   if (field.form?.id !== 'registration-form') return
   if (field.dataset.player !== undefined) {
     state.draft.players[Number(field.dataset.player)][field.dataset.field] = field.value
   } else if (field.name in state.draft) {
     state.draft[field.name] = field.value
   }
-  if (!state.dirty) {
-    state.dirty = true
-    document.querySelector('#draft-note').textContent = 'Alterações ainda precisam ser salvas.'
-  }
+  if (field.dataset.issue) state.touched.add(field.dataset.issue)
+  markDirty()
+  showDraftIssues()
+})
+
+app.addEventListener('focusout', event => {
+  const field = event.target
+  if (field.form?.id !== 'registration-form' || !field.dataset.issue) return
+  state.touched.add(field.dataset.issue)
+  showDraftIssues()
 })
 
 app.addEventListener('change', event => {
-  if (event.target.id !== 'filter-status') return
-  state.filter = event.target.value
-  draw('#filter-status')
+  const id = event.target.id
+  if (id === 'team-logo' || id === 'sponsor-logo') void selectLogo(event.target, id.split('-')[0])
+  if (id === 'filter-status') {
+    state.filter = event.target.value
+    draw('#filter-status')
+  }
 })
 
 app.addEventListener('submit', async event => {
   event.preventDefault()
-  if (state.busy || state.loading) return
+  if (state.busy || state.loading || state.logoRequest) return
   const form = event.target
-  const handler = { 'registration-form': submitRegistration, 'status-form': submitStatus, 'deadline-form': submitDeadline }[form.id]
+  if (form.id === 'registration-form') {
+    state.submitted = true
+    showDraftIssues()
+    if (Object.keys(draftIssues(state.draft)).length) {
+      const invalid = form.querySelector('[aria-invalid="true"]:not([type="file"])') ?? form.querySelector('#issue-roster')
+      invalid?.focus()
+      return
+    }
+  }
+  const handler = { 'registration-form': submitRegistration, 'status-form': submitStatus, 'deadline-form': submitDeadline, 'contact-form': submitContact, 'sponsor-form': submitSponsor }[form.id]
   if (!handler) return
   state.busy = true
   state.message = null
@@ -398,7 +633,9 @@ async function initialize() {
     const callbackError = callback.get('error_code') || new URLSearchParams(location.hash.slice(1)).get('error_code')
     const intent = sessionStorage.getItem(intentKey)
     sessionStorage.removeItem(intentKey)
-    const [sessionResult, settingsResult] = await Promise.allSettled([data.supabase.auth.getSession(), data.settings()])
+    const [sessionResult, settingsResult] = await Promise.allSettled([
+      data.supabase.auth.getSession(), data.settings(), refreshPublic(false),
+    ])
     if (sessionResult.status === 'fulfilled') state.session = sessionResult.value.data.session
     if (settingsResult.status === 'fulfilled') state.settings = settingsResult.value
     else report('Não foi possível carregar o prazo. Recarregue a página para tentar novamente.', 'error')
@@ -430,5 +667,10 @@ setInterval(() => {
   if (isClosed && !previouslyClosed && !state.busy && (state.screen === 'team' || state.screen === 'home')) draw()
   if (!state.busy) previouslyClosed = isClosed
 }, 15000)
+
+setInterval(() => {
+  const carousel = document.querySelector('.sponsors-footer')
+  if (!document.hidden && !state.sponsorPaused && !carousel?.matches(':hover, :focus-within')) slideSponsor(1)
+}, 4500)
 
 void initialize()

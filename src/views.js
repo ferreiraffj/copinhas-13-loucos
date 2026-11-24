@@ -1,3 +1,5 @@
+import { aboutSection, confirmedSection, footer, sponsorEmblem, teamEmblem } from './public-content.js'
+import { logoHelp, logoTypes } from './logo.js'
 import { configured } from './data.js'
 import { google, icon } from './icons.js'
 import { athleteKey, deadlineDay, deadlineInput, deadlineTime, escape, phone, statusNames, years } from './format.js'
@@ -16,16 +18,12 @@ function header(state) {
   return `<header class="site-header"><div class="container nav">
     <button type="button" class="brand-home" data-action="home" aria-label="Copinha 13 Loucos, início">${logo}</button>
     <nav aria-label="Navegação principal">
+      ${button('Sobre', 'about', {kind: 'nav-link'})}
       ${state.session || state.screen === 'team' || state.screen === 'admin' ? button('Minha equipe', 'team', {kind: 'nav-link'}) : ''}
       ${button('<span class="org-label">Área da organização</span><span class="org-short">Organização</span>', 'admin', {kind: 'nav-link', symbol: icon('shield')})}
     </nav>
   </div></header>`
 }
-
-const footer = `<footer class="site-footer"><div class="container footer-inner">
-  <span><strong>Copinha 13 Loucos</strong> · Futsal de base</span>
-  <span>Jardim América · Itaquaquecetuba, SP</span>
-</div></footer>`
 
 function hero(settings) {
   return `<section class="hero">
@@ -86,6 +84,8 @@ function landing(state) {
           <h3>Autorizações com a organização</h3><p>Entregue as autorizações assinadas conforme as orientações da organização e acompanhe o status aqui.</p>
         </div></div>
       </aside>
+      ${confirmedSection(state)}
+      ${aboutSection(state.settings)}
     </main>`
 }
 
@@ -102,18 +102,40 @@ function authActions(state) {
     ${button('Sair', 'logout', {kind: 'ghost', busy: state.busy})}`
 }
 
-function input(label, name, value, attributes = '') {
-  return `<label class="field"><span>${label}</span><input name="${name}" value="${escape(value)}" required ${attributes}></label>`
+function fieldError(key) {
+  return `<small class="field-error" id="issue-${key}" tabindex="-1" aria-live="polite" hidden></small>`
+}
+
+function input(label, name, value, attributes = '', issue = name) {
+  return `<div class="field"><label for="${issue}">${label}</label><input id="${issue}" name="${name}" value="${escape(value)}" data-issue="${issue}" aria-describedby="issue-${issue}" ${attributes}>${fieldError(issue)}</div>`
+}
+
+function imagePicker(kind, item, error, busy) {
+  const image = kind === 'team' ? teamEmblem(item, true) : item.logo ? teamEmblem(item) : ''
+  const description = kind === 'team' ? 'Logo da equipe (opcional)' : 'Logo do patrocinador'
+  return `<div class="logo-picker">
+    ${image}
+    <div class="field"><label for="${kind}-logo">${description}</label>
+      <input id="${kind}-logo" type="file" accept="${logoTypes}" aria-describedby="${kind}-logo-help ${kind}-logo-error" aria-invalid="${Boolean(error)}" ${busy ? 'disabled' : ''}>
+      <small class="field-help" id="${kind}-logo-help">${item.logo ? 'Logo pronta para salvar. ' : ''}${logoHelp}${kind === 'team' ? ' A organização pode publicar a logo após a confirmação.' : ''}</small>
+      <small class="field-error" id="${kind}-logo-error" aria-live="polite" ${error ? '' : 'hidden'}>${escape(error)}</small>
+    </div>
+    ${item.logo ? button('Remover logo', 'clear-' + kind + '-logo', {kind: 'secondary', busy}) : ''}
+  </div>`
 }
 
 function playerRow(player, index, length) {
   return `<div class="player-row"><span class="player-index" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
-    <label class="field"><span class="sr-only">Nome completo do atleta ${index + 1}</span>
-      <input placeholder="Nome completo" autocomplete="off" data-player="${index}" data-field="name" maxlength="90" required value="${escape(player.name)}">
-    </label>
-    <label class="field select-field"><span class="sr-only">Ano de nascimento do atleta ${index + 1}</span>
-      <select data-player="${index}" data-field="year" required><option value="">Ano de nascimento</option>${years.map(year => `<option value="${year}" ${Number(player.year) === year ? 'selected' : ''}>${year}</option>`).join('')}</select>${icon('down')}
-    </label>
+    <div class="field">
+      <label class="sr-only" for="name-${index}">Nome completo do atleta ${index + 1}</label>
+      <input id="name-${index}" placeholder="Nome completo" autocomplete="off" data-player="${index}" data-field="name" data-issue="name-${index}" aria-describedby="issue-name-${index}" maxlength="90" required value="${escape(player.name)}">
+      ${fieldError('name-' + index)}
+    </div>
+    <div class="field select-field">
+      <label class="sr-only" for="year-${index}">Ano de nascimento do atleta ${index + 1}</label>
+      <div class="select-control"><select id="year-${index}" data-player="${index}" data-field="year" data-issue="year-${index}" aria-describedby="issue-year-${index}" required><option value="">Ano de nascimento</option>${years.map(year => `<option value="${year}" ${Number(player.year) === year ? 'selected' : ''}>${year}</option>`).join('')}</select>${icon('down')}</div>
+      ${fieldError('year-' + index)}
+    </div>
     <button type="button" class="icon-button" aria-label="Remover atleta ${index + 1}" title="Remover atleta" data-action="remove-player" data-index="${index}" ${length === 1 ? 'disabled' : ''}>${icon('trash')}</button>
   </div>`
 }
@@ -129,20 +151,22 @@ function team(state) {
       ${session?.user.is_anonymous ? notice('Para editar em outro aparelho ou recuperar o acesso, vincule o Google enquanto esta sessão estiver ativa.', 'Você está como visitante') : ''}
       ${ended ? notice('A organização controla a data limite de inscrição e edição.', 'Prazo encerrado') : ''}
       ${locked ? own ? roster(own) : '' : `
-      <form id="registration-form" class="team-form">
+      <form id="registration-form" class="team-form" novalidate>
         <section class="card form-card">
           <div class="form-heading"><span class="section-icon">${icon('user')}</span><div><h2>Dados da equipe</h2><p>Informe o contato do representante adulto.</p></div></div>
           <fieldset ${busy ? 'disabled' : ''}>
-            ${input('Nome da equipe', 'team_name', draft.team_name, 'maxlength="80" autocomplete="organization"')}
+            ${input('Nome da equipe', 'team_name', draft.team_name, 'required maxlength="80" autocomplete="organization"')}
             <div class="field-grid">
-              ${input('Nome do representante', 'representative_name', draft.representative_name, 'maxlength="90" autocomplete="name"')}
-              ${input('WhatsApp com DDD', 'representative_phone', draft.representative_phone, 'maxlength="16" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(11) 99999-9999"')}
+              ${input('Nome do representante', 'representative_name', draft.representative_name, 'required maxlength="90" autocomplete="name"')}
+              ${input('WhatsApp com DDD', 'representative_phone', draft.representative_phone, 'required type="tel" data-phone inputmode="tel" autocomplete="tel-national" placeholder="(11) 99999-9999"')}
             </div>
+            ${imagePicker('team', draft, state.logoErrors.team, busy)}
           </fieldset>
         </section>
         <section class="card form-card">
           <div class="form-heading spread"><div class="form-heading"><span class="section-icon">${icon('people')}</span><div><h2>Elenco</h2><p>Preencha de 5 a 15 vagas. Até 2 atletas nascidos em 2011.</p></div></div><span class="count">${draft.players.length}/15 vagas</span></div>
           <fieldset ${busy ? 'disabled' : ''}>
+            ${fieldError('roster')}
             <div class="player-list">${draft.players.map((player, index) => playerRow(player, index, draft.players.length)).join('')}</div>
             ${button('Adicionar atleta', 'add-player', {kind: 'secondary', symbol: icon('plus'), busy: draft.players.length === 15})}
           </fieldset>
@@ -154,7 +178,7 @@ function team(state) {
 }
 
 function roster(team, duplicateKeys = new Set()) {
-  return `<section class="card roster"><div class="roster-contact"><div><h3>Representante</h3><p>${escape(team.representative_name)} · ${escape(phone(team.representative_phone))}</p></div><span class="count">${team.players.length} atletas</span></div>
+  return `<section class="card roster"><div class="roster-contact">${teamEmblem(team)}<div><h3>Representante</h3><p>${escape(team.representative_name)} · ${escape(phone(team.representative_phone))}</p></div><span class="count">${team.players.length} atletas</span></div>
   <ol>${team.players.map(player => `<li><span>${escape(player.name)}${duplicateKeys.has(athleteKey(player)) ? '<small>Também consta em outra equipe</small>' : ''}</span><strong>${player.year}</strong></li>`).join('')}</ol></section>`
 }
 
@@ -201,8 +225,34 @@ function admin(state) {
         <div class="form-heading"><span class="section-icon">${icon('clock')}</span><div><h2>Prazo da competição</h2><p>Data limite para enviar ou editar elencos · horário de Brasília.</p></div></div>
         <form id="deadline-form" class="inline-form"><label class="field"><span>Encerramento</span><input type="datetime-local" name="deadline" value="${deadlineInput(state.settings.edit_deadline)}" required></label><button type="submit" class="button primary" ${state.busy ? 'disabled' : ''}>Salvar prazo</button></form>
       </section>` : ''}
-      ${adminList(state)}`}
+      ${adminList(state)}
+      ${adminExtras(state)}`}
     </main>`
+}
+
+function adminExtras(state) {
+  return `<div class="admin-settings">
+    ${state.settings ? `<section class="card form-card">
+      <div class="form-heading"><span class="section-icon">${icon('user')}</span><div><h2>Contato público</h2><p>O WhatsApp de Felipe Ferreira aparecerá na seção Sobre.</p></div></div>
+      <form id="contact-form" class="inline-form">
+        ${input('WhatsApp da organização', 'contact_phone', state.contactDraft ?? phone(state.settings.contact_phone), 'type="tel" data-phone inputmode="tel" autocomplete="tel-national" placeholder="(11) 99999-9999"')}
+        <button class="button primary" type="submit" ${state.busy ? 'disabled' : ''}>Salvar contato</button>
+      </form>
+    </section>` : ''}
+    <section class="card form-card">
+      <div class="form-heading"><span class="section-icon">${icon('shield')}</span><div><h2>Patrocinadores</h2><p>Gerencie as logos que aparecem no carrossel do rodapé.</p></div></div>
+      ${state.sponsors === null ? '<p>Não foi possível carregar os patrocinadores. Recarregue o painel.</p>' : `
+        ${state.sponsors.length ? `<ul class="sponsor-list">${state.sponsors.map(sponsor => `<li>
+          ${sponsorEmblem(sponsor)}<strong>${escape(sponsor.name)}</strong>
+          <button class="icon-button" type="button" data-action="remove-sponsor" data-id="${escape(sponsor.id)}" aria-label="Remover patrocinador ${escape(sponsor.name)}">${icon('trash')}</button>
+        </li>`).join('')}</ul>` : '<p>Nenhum patrocinador cadastrado.</p>'}
+        <form id="sponsor-form">
+          ${input('Nome do patrocinador', 'sponsor_name', state.sponsorDraft.name, 'required minlength="2" maxlength="80"')}
+          ${imagePicker('sponsor', state.sponsorDraft, state.logoErrors.sponsor, state.busy)}
+          <button class="button primary" type="submit" ${state.busy ? 'disabled' : ''}>Adicionar patrocinador</button>
+        </form>`}
+    </section>
+  </div>`
 }
 
 function adminGate(state) {
@@ -219,5 +269,5 @@ export function renderApp(state) {
   const view = { home: landing, team, admin, 'admin-gate': adminGate }[state.screen]
   return `${header(state)}${demoBar(state)}
     <div id="feedback" class="feedback" aria-live="polite">${state.message ? notice(state.message.text, '', state.message.kind) : ''}</div>
-    ${view(state)}${footer}`
+    ${view(state)}${footer(state)}`
 }

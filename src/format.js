@@ -24,7 +24,20 @@ const inputFormat = new Intl.DateTimeFormat('en-CA', {
 
 export const deadlineDay = value => dayFormat.format(new Date(value))
 export const deadlineTime = value => timeFormat.format(new Date(value))
-export const phone = value => String(value).replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3')
+export function phoneDigits(value) {
+  return String(value ?? '').replace(/^\s*\+55\D*/, '').replace(/\D/g, '').slice(0, 11)
+}
+
+export function phone(value) {
+  const digits = phoneDigits(value)
+  if (digits.length < 3) return digits ? '(' + digits : ''
+  const number = digits.slice(2)
+  const split = digits.length === 11 ? 5 : 4
+  const local = number.length > split ? number.slice(0, split) + '-' + number.slice(split) : number
+  return '(' + digits.slice(0, 2) + ') ' + local
+}
+
+export const validPhone = value => /^[1-9]\d{9,10}$/.test(String(value ?? '').replace(/\D/g, ''))
 
 export function deadlineInput(value) {
   const parts = Object.fromEntries(inputFormat.formatToParts(new Date(value)).map(part => [part.type, part.value]))
@@ -35,23 +48,25 @@ export function athleteKey(player) {
   return `${normalizeName(player.name).toLocaleLowerCase('pt-BR')}/${player.year}`
 }
 
-export function validDraft(draft) {
-  if (draft.team_name.trim().length < 2 || draft.representative_name.trim().length < 3) {
-    return 'Preencha o nome da equipe e o nome do representante adulto.'
-  }
-  if (!/^[1-9]\d{9,10}$/.test(draft.representative_phone.replace(/\D/g, ''))) {
-    return 'Informe um WhatsApp com DDD, com 10 ou 11 dígitos.'
-  }
-  if (draft.players.length < 5 || draft.players.length > 15) {
-    return 'A equipe precisa ter de 5 a 15 atletas.'
-  }
-  const invalid = draft.players.findIndex(player => !normalizeName(player.name).includes(' ') || !years.includes(Number(player.year)))
-  if (invalid !== -1) return `Informe o nome completo e o ano de nascimento do atleta ${invalid + 1}.`
-  if (draft.players.filter(player => Number(player.year) === 2011).length > 2) {
-    return 'O elenco pode ter até dois atletas nascidos em 2011.'
-  }
-  if (new Set(draft.players.map(athleteKey)).size !== draft.players.length) {
-    return 'Há atletas repetidos na relação.'
-  }
-  return ''
+
+export function draftIssues(draft) {
+  const issues = {}
+  if (draft.team_name.trim().length < 2) issues.team_name = 'Informe o nome da equipe.'
+  if (normalizeName(draft.representative_name).length < 3) issues.representative_name = 'Informe o nome do representante adulto.'
+  if (!validPhone(draft.representative_phone)) issues.representative_phone = 'Informe um WhatsApp com DDD, com 10 ou 11 dígitos.'
+  if (draft.players.length < 5 || draft.players.length > 15) issues.roster = 'A equipe precisa ter de 5 a 15 atletas.'
+
+  let oldest = 0
+  const seen = new Set()
+  draft.players.forEach((player, index) => {
+    const name = normalizeName(player.name)
+    const year = Number(player.year)
+    const key = athleteKey(player)
+    if (name.length < 3 || !name.includes(' ')) issues['name-' + index] = 'Informe nome e sobrenome.'
+    else if (years.includes(year) && seen.has(key)) issues['name-' + index] = 'Este atleta já consta no elenco.'
+    if (!years.includes(year)) issues['year-' + index] = 'Selecione o ano de nascimento.'
+    if (year === 2011 && ++oldest > 2) issues['year-' + index] = 'O limite de 2 atletas de 2011 foi atingido.'
+    if (years.includes(year) && name.includes(' ')) seen.add(key)
+  })
+  return issues
 }

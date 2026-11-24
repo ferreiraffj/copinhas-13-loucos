@@ -44,7 +44,7 @@ async function mutation(name, values) {
 }
 
 export async function settings() {
-  return result(await supabase.from('tournament_settings').select('edit_deadline, revision').eq('id', 1).single())
+  return result(await supabase.from('tournament_settings').select('edit_deadline, contact_phone, revision').eq('id', 1).single())
 }
 
 export async function isMaster() {
@@ -67,11 +67,12 @@ export async function allRegistrations() {
 }
 
 export function saveRegistration(draft, revision) {
-  return mutation('save_registration', {
+  return mutation('save_registration_with_logo', {
     p_team_name: draft.team_name,
     p_representative: draft.representative_name,
     p_phone: draft.representative_phone,
     p_players: draft.players,
+    p_logo: draft.logo,
     p_revision: revision,
   })
 }
@@ -82,4 +83,24 @@ export function saveStatus(id, status, revision) {
 
 export function saveDeadline(deadline, revision) {
   return mutation('set_edit_deadline', { p_deadline: deadline, p_revision: revision })
+}
+
+export async function confirmedTeams() {
+  return result(await supabase.rpc('confirmed_teams'))
+}
+
+export async function sponsors() {
+  return result(await supabase.from('sponsors').select('id, name, logo, asset_key').order('created_at').order('id'))
+}
+
+export function addSponsor(draft) {
+  return mutation('add_sponsor', { p_name: draft.name, p_logo: draft.logo })
+}
+
+export function removeSponsor(id) {
+  return mutation('remove_sponsor', { p_id: id })
+}
+
+export function saveContact(phone, revision) {
+  return mutation('save_organizer_contact', { p_phone: phone, p_revision: revision })
 }
