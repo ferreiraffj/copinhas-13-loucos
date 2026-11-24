@@ -333,6 +333,8 @@ h1, h2, h3 { font-weight: 700; }
 }
 .nav { height: 82px; }
 .brand-home .brand-logo { width: 176px; }
+.brand-home { width: 64px; height: 64px; justify-content: center; overflow: visible; }
+.brand-home .brand-crest { width: 64px; height: 64px; display: block; object-fit: contain; filter: drop-shadow(0 4px 0 #451021); }
 .nav nav { gap: 6px; }
 .button { border-radius: 999px; min-height: 48px; padding-inline: 19px; font-weight: 700; }
 .button.primary { background: var(--wine); box-shadow: 0 5px 0 var(--wine-dark); }
@@ -434,6 +436,8 @@ h1, h2, h3 { font-weight: 700; }
 @media (max-width: 650px) {
   .nav { height: 68px; }
   .brand-home .brand-logo { width: 124px; }
+  .brand-home { width: 52px; height: 52px; }
+  .brand-home .brand-crest { width: 52px; height: 52px; }
   .hero { border-radius: 0 0 32px 32px; }
   .hero-inner { padding-block: 42px 38px; }
   .hero-logo { margin: 0 auto 4px; }

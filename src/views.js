@@ -5,6 +5,7 @@ import { google, icon } from './icons.js'
 import { athleteKey, deadlineDay, deadlineInput, deadlineTime, escape, phone, statusNames, years } from './format.js'
 
 const logo = '<img class="brand-logo" src="/logotipo.png" alt="Copinha 13 Loucos" width="2172" height="724">'
+const crestLogo = '<img class="brand-crest" src="/brasao.png" alt="Brasão Copinha 13 Loucos" width="908" height="908">'
 
 export const badge = status => `<span class="badge ${escape(status)}"><i></i>${escape(statusNames[status])}</span>`
 export const deadlineLabel = settings => settings ? `${deadlineDay(settings.edit_deadline)}, às ${deadlineTime(settings.edit_deadline)}` : 'Prazo indisponível'
@@ -16,7 +17,7 @@ function button(label, action, { kind = 'primary', symbol = '', busy = false } =
 
 function header(state) {
   return `<header class="site-header"><div class="container nav">
-    <button type="button" class="brand-home" data-action="home" aria-label="Copinha 13 Loucos, início">${logo}</button>
+    <button type="button" class="brand-home" data-action="home" aria-label="Copinha 13 Loucos, início">${crestLogo}</button>
     <nav aria-label="Navegação principal">
       ${button('Sobre', 'about', {kind: 'nav-link'})}
       ${state.session || state.screen === 'team' || state.screen === 'admin' ? button('Minha equipe', 'team', {kind: 'nav-link'}) : ''}
@@ -32,7 +33,7 @@ function hero(settings) {
       <div class="hero-kicker"><span></span> TORNEIO DE FUTSAL <span></span></div>
       <div class="hero-logo">${logo}</div>
       <h1>Formulário de inscrição</h1>
-      <p>Inscrição 100% gratuita. Permitido jogadores Sub 12 a Sub 14, com apenas 2 Sub 15 por equipe.</p>
+      <p>Inscrição 100% gratuita. Premiação para 1º e 2º lugar, artilheiro(a) e melhor goleiro(a).</p>
       <div class="hero-meta">
         <span>${icon('calendar')}${settings && closed(settings) ? 'Inscrições encerradas' : settings ? `Até ${deadlineDay(settings.edit_deadline)}` : 'Consulte o prazo de inscrição'}</span>
         <span>${icon('pin')}Quadra da Praça - Jardim América, KM40 - Itaquá</span>
