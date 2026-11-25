@@ -26,7 +26,7 @@ O projeto usa JavaScript com módulos ES, HTML e CSS. O Vite empacota a aplicaç
 - **Prazo e situação.** O prazo inicial é 10/12/2026 às 23h59min59s no horário de Brasília. O banco valida o prazo ao gravar. Após o encerramento, o representante pode consultar a inscrição. As situações são `pending`, `confirmed` e `ineligible`. A inscrição começa pendente, e mudanças no elenco, no nome da equipe ou na logo fazem uma confirmação voltar a pendente. As autorizações são entregues fora do site.
 - **Organização.** O administrador master pode editar os dados e o elenco da equipe mesmo após o prazo, com a situação atual preservada. Também consulta contatos, filtra equipes, muda situações, define prazo e anos aceitos, edita contatos públicos e gerencia patrocinadores. O acesso depende de uma sessão identificada e de um UID cadastrado em `copinha_private.organizers`.
 - **Visibilidade pública.** A RPC `confirmed_teams_with_roster` fornece identificador, nome e logo das equipes confirmadas e os nomes dos seus atletas. Clicar na equipe abre um modal com a lista rolável. Os anos de nascimento, os contatos e os registros completos da inscrição ficam restritos ao titular e à organização via políticas de RLS.
-- **Imagens.** Para logos, o navegador aceita PNG/JPEG de até 2 MB e redimensiona para até 320 px. O banco valida o formato e limita o dado armazenado a 512 KB. A Adega 13 Alta é cadastrada pela migração inicial de patrocinadores e usa o arquivo em `public/sponsors/`.
+- **Imagens.** Para logos, o navegador aceita PNG/JPEG de até 5 MB e redimensiona para até 320 px. O banco valida o formato e limita o dado armazenado a 512 KB. A Adega 13 Alta é cadastrada pela migração inicial de patrocinadores e usa o arquivo em `public/sponsors/`.
 
 ## Banco e migrações
 

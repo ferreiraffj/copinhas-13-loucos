@@ -1,12 +1,15 @@
 export const logoTypes = 'image/png,image/jpeg,.png,.jpg,.jpeg'
-export const logoHelp = 'PNG, JPG ou JPEG, até 2 MB.'
-const maxUploadSize = 2 * 1024 * 1024
+const maxUploadMegabytes = 5
+const maxUploadSize = maxUploadMegabytes * 1_000_000
+export const logoHelp = `PNG, JPG ou JPEG, até ${maxUploadMegabytes} MB.`
 const maxDimension = 320
 
 export async function readLogo(file) {
   const extension = file.name.toLowerCase().match(/\.(png|jpe?g)$/)?.[1]
   if (!extension) throw new Error('Escolha uma imagem PNG, JPG ou JPEG.')
-  if (file.size > maxUploadSize) throw new Error('A imagem deve ter até 2 MB.')
+  if (file.size > maxUploadSize) {
+    throw new Error(`O arquivo tem ${file.size.toLocaleString('pt-BR')} bytes. O limite é ${maxUploadSize.toLocaleString('pt-BR')} bytes (${maxUploadMegabytes} MB).`)
+  }
 
   const mime = extension === 'png' ? 'image/png' : 'image/jpeg'
   const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer())

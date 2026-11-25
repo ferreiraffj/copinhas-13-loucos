@@ -58,6 +58,6 @@ npm run build
 4. Abra **Área da organização → Patrocinadores** para adicionar ou remover marcas. A migração já inclui a Adega 13 Alta. O rodapé alterna automaticamente quando há duas ou mais marcas. Os controles permitem pausar e navegar.
 5. Verifique na página pública se apenas as equipes confirmadas estão aparecendo e se o PDF abre ou baixa.
 
-A logo da equipe é opcional. O formulário aceita **PNG, JPG e JPEG de até 2 MB**, confere o arquivo e reprocessa a imagem para até 320 px. O servidor limita o dado gravado a 512 KB, verifica formato e aplica as mesmas permissões e o mesmo prazo da inscrição. Alterar ou remover a logo de uma equipe confirmada faz a inscrição voltar a pendente para a organização aprovar o material público. A lista pública entrega apenas o nome e a logo das equipes confirmadas.
+A logo da equipe é opcional. O formulário aceita **PNG, JPG e JPEG de até 5 MB**, confere o arquivo e reprocessa a imagem para até 320 px. O servidor limita o dado gravado a 512 KB, verifica formato e aplica as mesmas permissões e o mesmo prazo da inscrição. Alterar ou remover a logo de uma equipe confirmada faz a inscrição voltar a pendente para a organização aprovar o material público. A lista pública entrega apenas o nome e a logo das equipes confirmadas.
 
 A seção **Sobre** resume o regulamento anexado e disponibiliza o PDF original, identificado como minuta.
