@@ -18,7 +18,7 @@ export function confirmedSection(state) {
     <div class="section-title"><span class="section-icon">${icon('people')}</span><h2 id="confirmed-title">Equipes confirmadas</h2></div>
     ${state.publicTeamsFailed ? '<p>Não foi possível carregar as equipes confirmadas. Recarregue a página para tentar novamente.</p>'
       : teams === null ? '<p role="status">Carregando equipes…</p>'
-      : teams.length ? `<ul class="confirmed-grid">${teams.map(team => `<li class="card confirmed-card">${teamEmblem(team, true)}<h3>${escape(team.team_name)}</h3></li>`).join('')}</ul>`
+      : teams.length ? `<ul class="confirmed-grid">${teams.map(team => `<li><button type="button" class="card confirmed-card" data-action="public-roster" data-id="${escape(team.id)}" aria-haspopup="dialog">${teamEmblem(team, true)}<span>${escape(team.team_name)}</span></button></li>`).join('')}</ul>`
       : '<p>As equipes aparecem aqui assim que a organização confirma a inscrição.</p>'}
   </section>`
 }

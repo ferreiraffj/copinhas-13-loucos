@@ -28,6 +28,15 @@
   <body>
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
     <div id="app"></div>
+    <dialog id="public-roster" aria-labelledby="public-roster-title">
+      <div class="public-roster-content">
+        <header>
+          <div><p>Elenco inscrito</p><h2 id="public-roster-title"></h2></div>
+          <form method="dialog"><button class="button secondary" autofocus>Fechar</button></form>
+        </header>
+        <ol class="public-roster-list" aria-label="Jogadores inscritos" tabindex="0"></ol>
+      </div>
+    </dialog>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

@@ -49,11 +49,12 @@ export function athleteKey(player) {
 }
 
 
-export function draftIssues(draft, allowedYears = years) {
+export function draftIssues(draft, allowedYears = years, unchangedRoster = false) {
   const issues = {}
   if (draft.team_name.trim().length < 2) issues.team_name = 'Informe o nome da equipe.'
   if (normalizeName(draft.representative_name).length < 3) issues.representative_name = 'Informe o nome do representante adulto.'
   if (!validPhone(draft.representative_phone)) issues.representative_phone = 'Informe um WhatsApp com DDD, com 10 ou 11 dígitos.'
+  if (unchangedRoster) return issues
   if (draft.players.length < 5 || draft.players.length > 15) issues.roster = 'A equipe precisa ter de 5 a 15 atletas.'
 
   let oldest = 0

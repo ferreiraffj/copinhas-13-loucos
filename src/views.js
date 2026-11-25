@@ -126,6 +126,8 @@ function imagePicker(kind, item, error, busy) {
 }
 
 function playerRow(player, index, length, availableYears) {
+  const currentYear = Number(player.year)
+  const options = currentYear && !availableYears.includes(currentYear) ? [...availableYears, currentYear] : availableYears
   return `<div class="player-row"><span class="player-index" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
     <div class="field">
       <label class="sr-only" for="name-${index}">Nome completo do atleta ${index + 1}</label>
@@ -134,7 +136,7 @@ function playerRow(player, index, length, availableYears) {
     </div>
     <div class="field select-field">
       <label class="sr-only" for="year-${index}">Ano de nascimento do atleta ${index + 1}</label>
-      <div class="select-control"><select id="year-${index}" data-player="${index}" data-field="year" data-issue="year-${index}" aria-describedby="issue-year-${index}" required><option value="">Ano de nascimento</option>${availableYears.map(year => `<option value="${year}" ${Number(player.year) === year ? 'selected' : ''}>${year}</option>`).join('')}</select>${icon('down')}</div>
+      <div class="select-control"><select id="year-${index}" data-player="${index}" data-field="year" data-issue="year-${index}" aria-describedby="issue-year-${index}" required><option value="">Ano de nascimento</option>${options.map(year => `<option value="${year}" ${currentYear === year ? 'selected' : ''}>${year}</option>`).join('')}</select>${icon('down')}</div>
       ${fieldError('year-' + index)}
     </div>
     <button type="button" class="icon-button" aria-label="Remover atleta ${index + 1}" title="Remover atleta" data-action="remove-player" data-index="${index}" ${length === 1 ? 'disabled' : ''}>${icon('trash')}</button>
@@ -142,14 +144,18 @@ function playerRow(player, index, length, availableYears) {
 }
 
 function team(state) {
-  const { own, draft, settings, session, busy, loading, dirty } = state
-  const ended = closed(settings)
+  const { draft, settings, session, busy, loading, dirty } = state
+  const editing = state.screen === 'admin-edit'
+  const own = editing ? state.editingTeam : state.own
+  const ended = !editing && closed(settings)
   const locked = !settings || ended
   const availableYears = settings?.birth_years ?? years
-  return `${dashboardTitle('Área da equipe', own ? escape(own.team_name) : 'Inscrição da equipe', 'Monte o elenco e acompanhe a confirmação da organização.', authActions(state))}
+  return `${editing
+    ? dashboardTitle('Área da organização', escape(own.team_name), 'Editar inscrição da equipe.', button('Voltar ao painel', 'back-to-admin', { kind: 'secondary' }))
+    : dashboardTitle('Área da equipe', own ? escape(own.team_name) : 'Inscrição da equipe', 'Monte o elenco e acompanhe a confirmação da organização.', authActions(state))}
   <main id="conteudo" class="container dashboard" tabindex="-1">
     ${loading ? '<p class="card loading" role="status">Carregando inscrição…</p>' : `
-      ${own ? `<div class="card status-strip"><div><span class="section-icon">${icon('note')}</span><div><strong>Status da inscrição</strong><p>${ended ? 'Prazo de edição encerrado' : `Edição até ${deadlineLabel(settings)}`}</p></div></div>${badge(own.status)}</div>` : ''}
+      ${own && !editing ? `<div class="card status-strip"><div><span class="section-icon">${icon('note')}</span><div><strong>Status da inscrição</strong><p>${ended ? 'Prazo de edição encerrado' : `Edição até ${deadlineLabel(settings)}`}</p></div></div>${badge(own.status)}</div>` : ''}
       ${session?.user.is_anonymous ? notice('Para editar em outro aparelho ou recuperar o acesso, vincule o Google enquanto esta sessão estiver ativa.', 'Você está como visitante') : ''}
       ${ended ? notice('A organização controla a data limite de inscrição e edição.', 'Prazo encerrado') : ''}
       ${locked ? own ? roster(own) : '' : `
@@ -211,6 +217,7 @@ function adminList(state) {
     </section>
     ${selected ? `<section aria-label="Detalhes da equipe">
       <div class="card form-card team-review"><h2>${escape(selected.team_name)}</h2><p>Confira o elenco atual antes de alterar o status.</p>
+      ${button('Editar inscrição', 'edit-team', { kind: 'secondary', busy: state.busy || !state.settings })}
       <form id="status-form" class="inline-form" data-id="${escape(selected.id)}">
         <label class="field select-field"><span>Status da equipe</span><select name="status" required>${Object.entries(statusNames).map(([key, value]) => `<option value="${key}" ${key === selected.status ? 'selected' : ''}>${value}</option>`).join('')}</select>${icon('down')}</label>
         <button class="button primary" type="submit" ${state.busy ? 'disabled' : ''}>Salvar status</button>
@@ -280,7 +287,7 @@ function adminGate(state) {
 }
 
 export function renderApp(state) {
-  const view = { home: landing, team, admin, 'admin-gate': adminGate }[state.screen]
+  const view = { home: landing, team, admin, 'admin-edit': team, 'admin-gate': adminGate }[state.screen]
   return `${header(state)}${demoBar(state)}
     <div id="feedback" class="feedback" aria-live="polite">${state.message ? notice(state.message.text, '', state.message.kind) : ''}</div>
     ${view(state)}${footer(state)}`

@@ -66,8 +66,9 @@ export async function allRegistrations() {
   }
 }
 
-export function saveRegistration(draft, revision) {
-  return mutation('save_registration_with_instagram', {
+export function saveRegistration(draft, revision, adminTeamId) {
+  return mutation(adminTeamId ? 'admin_edit_registration' : 'save_registration_with_instagram', {
+    ...(adminTeamId ? { p_id: adminTeamId } : {}),
     p_team_name: draft.team_name,
     p_representative: draft.representative_name,
     p_phone: draft.representative_phone,
@@ -92,7 +93,7 @@ export function saveBirthYears(birthYears, revision) {
 }
 
 export async function confirmedTeams() {
-  return result(await supabase.rpc('confirmed_teams'))
+  return result(await supabase.rpc('confirmed_teams_with_roster'))
 }
 
 export async function sponsors() {

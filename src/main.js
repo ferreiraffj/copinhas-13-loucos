@@ -6,11 +6,13 @@ import { confirmedSection, firstSponsor, footer } from './public-content.js'
 import { closed, renderApp } from './views.js'
 
 const app = document.querySelector('#app')
+const publicRoster = document.querySelector('#public-roster')
+const publicRosterList = publicRoster.querySelector('ol')
 const intentKey = 'copinha:auth-intent'
 const registrationDraftKey = 'copinha:registration-draft'
 const demoTeams = structuredClone(data.exampleTeams)
 const state = {
-  screen: 'home', settings: data.initialSettings, session: null, own: null,
+  screen: 'home', settings: data.initialSettings, session: null, own: null, editingTeam: null,
   teams: data.configured ? [] : demoTeams, filter: '', selected: '',
   publicTeams: data.configured ? null : demoTeams.filter(team => team.status === 'confirmed'),
   publicTeamsFailed: false, sponsors: data.configured ? null : [{ ...firstSponsor }],
@@ -70,14 +72,18 @@ function clearPersistedDraft() {
 
 function loadDraft() {
   const saved = storedDraft()
-  const serverDraft = state.own ? {
-    team_name: state.own.team_name,
-    representative_name: state.own.representative_name,
-    representative_phone: phone(state.own.representative_phone),
-    team_instagram: state.own.team_instagram ?? '',
-    representative_instagram: state.own.representative_instagram ?? '',
-    players: structuredClone(state.own.players),
-    logo: state.own.logo ?? null,
+  setDraft(state.own, saved)
+}
+
+function setDraft(team, saved = null) {
+  const serverDraft = team ? {
+    team_name: team.team_name,
+    representative_name: team.representative_name,
+    representative_phone: phone(team.representative_phone),
+    team_instagram: team.team_instagram ?? '',
+    representative_instagram: team.representative_instagram ?? '',
+    players: structuredClone(team.players),
+    logo: team.logo ?? null,
   } : emptyDraft()
   state.draft = saved ?? serverDraft
   state.dirty = Boolean(saved)
@@ -111,6 +117,10 @@ function reportError(error, fallback) {
 }
 
 function navigate(screen, animate = false) {
+  if (state.screen === 'admin-edit' && screen !== 'admin-edit') {
+    state.editingTeam = null
+    loadDraft()
+  }
   state.screen = screen
   state.message = null
   state.challenge = false
@@ -132,15 +142,37 @@ async function refreshPublic(updateView = true) {
     const publicSection = document.querySelector('#equipes-confirmadas')
     const footerElement = document.querySelector('.site-footer')
     // Preserve focus and sign-in controls during public updates.
-    if (publicSection) publicSection.outerHTML = confirmedSection(state)
+    if (publicSection) {
+      const focusedTeam = publicSection.contains(active) ? active.dataset.id : null
+      publicSection.outerHTML = confirmedSection(state)
+      if (focusedTeam) focusPublicTeam(focusedTeam)
+    }
     if (footerElement && !footerElement.contains(active)) footerElement.outerHTML = footer(state)
   }
+}
+
+function focusPublicTeam(id) {
+  const teamButton = app.querySelector(`[data-action="public-roster"][data-id="${CSS.escape(id)}"]`)
+  const target = teamButton ?? app.querySelector('#conteudo')
+  target?.focus({ preventScroll: true })
+}
+
+function unchangedAdminRoster() {
+  const players = state.editingTeam?.players
+  return Boolean(players && players.length === state.draft.players.length && players.every((player, index) => {
+    const edited = state.draft.players[index]
+    return player.name === edited.name && player.year === Number(edited.year)
+  }))
+}
+
+function currentDraftIssues() {
+  return draftIssues(state.draft, state.settings?.birth_years ?? years, unchangedAdminRoster())
 }
 
 function showDraftIssues() {
   const form = document.querySelector('#registration-form')
   if (!form) return
-  const issues = draftIssues(state.draft, state.settings?.birth_years ?? years)
+  const issues = currentDraftIssues()
   for (const field of form.querySelectorAll('[data-issue]')) {
     const key = field.dataset.issue
     const value = state.submitted || state.touched.has(key) ? issues[key] : ''
@@ -161,7 +193,7 @@ function showIssue(key, message) {
 
 function markDirty() {
   state.dirty = true
-  persistDraft()
+  if (state.screen === 'team') persistDraft()
   const note = document.querySelector('#draft-note')
   if (note) note.textContent = 'Alterações ainda precisam ser salvas.'
 }
@@ -222,11 +254,13 @@ function slideSponsor(step) {
 }
 
 function mayLeave() {
-  return !state.dirty || state.screen !== 'team' || window.confirm('Você tem alterações sem salvar. Deseja sair da inscrição?')
+  return !state.dirty || !['team', 'admin-edit'].includes(state.screen)
+    || window.confirm('Você tem alterações sem salvar. Deseja sair da inscrição?')
 }
 
 async function openTeam() {
   if (state.screen === 'team') return
+  if (!mayLeave()) return
   if (data.configured && !state.session) {
     navigate('home')
     return
@@ -251,6 +285,10 @@ async function openTeam() {
 
 async function openAdmin() {
   if (!mayLeave()) return
+  if (state.screen === 'admin-edit') {
+    navigate('admin')
+    return
+  }
   if (data.configured && (!state.session || state.session.user.is_anonymous)) {
     navigate('admin-gate', true)
     return
@@ -402,7 +440,7 @@ function clearSession() {
   navigate('home')
 }
 
-function updateDemoTeam(team) {
+function updateTeam(team) {
   const existing = state.teams.findIndex(item => item.id === team.id)
   if (existing === -1) state.teams.push(team)
   else state.teams[existing] = team
@@ -410,7 +448,8 @@ function updateDemoTeam(team) {
 }
 
 async function submitRegistration() {
-  if (!state.settings || closed(state.settings)) {
+  const editing = state.editingTeam
+  if (!state.settings || (!editing && closed(state.settings))) {
     report('O prazo de inscrição e edição já encerrou.', 'error')
     draw()
     return
@@ -422,12 +461,22 @@ async function submitRegistration() {
     team_instagram: state.draft.team_instagram.trim().replace(/^@+/, ''),
     representative_instagram: state.draft.representative_instagram.trim().replace(/^@+/, ''),
     logo: state.draft.logo,
-    players: state.draft.players.map(player => ({ name: normalizeName(player.name), year: Number(player.year) })),
+    players: unchangedAdminRoster() ? editing.players
+      : state.draft.players.map(player => ({ name: normalizeName(player.name), year: Number(player.year) })),
   }
   for (const instagram of [draft.team_instagram, draft.representative_instagram]) {
     if (instagram && !/^[a-z0-9._]{1,30}$/i.test(instagram)) {
       throw new Error('Informe um Instagram válido ou deixe o campo em branco.')
     }
+  }
+  if (editing) {
+    const updated = data.configured
+      ? await data.saveRegistration(draft, editing.revision, editing.id)
+      : { ...editing, ...draft, revision: editing.revision + 1 }
+    updateTeam(updated)
+    navigate('admin')
+    report('Inscrição da equipe atualizada.')
+    return
   }
   const existing = state.own
   if (data.configured) {
@@ -440,7 +489,7 @@ async function submitRegistration() {
       ...draft, id: 'preview-own', revision: (existing?.revision ?? 0) + 1,
       status: existing?.status === 'confirmed' && needsReview ? 'pending' : existing?.status ?? 'pending',
     }
-    updateDemoTeam(state.own)
+    updateTeam(state.own)
   }
   clearPersistedDraft()
   loadDraft()
@@ -456,7 +505,7 @@ async function submitStatus(form) {
   const updated = data.configured
     ? await data.saveStatus(team.id, status, team.revision)
     : { ...team, status, revision: team.revision + 1 }
-  updateDemoTeam(updated)
+  updateTeam(updated)
   if (state.filter && state.filter !== status) state.filter = ''
   report('Status atualizado.')
 }
@@ -551,6 +600,30 @@ const actions = {
     document.querySelector('#sobre').scrollIntoView({ behavior: 'smooth', block: 'start' })
   },
   team: openTeam,
+  'public-roster'(button) {
+    const team = state.publicTeams?.find(item => item.id === button.dataset.id)
+    if (!team) return
+    publicRoster.dataset.teamId = team.id
+    publicRoster.querySelector('h2').textContent = team.team_name
+    const names = data.configured ? team.player_names : team.players.map(player => player.name)
+    publicRosterList.replaceChildren(...names.map(name => {
+      const item = document.createElement('li')
+      item.textContent = name
+      return item
+    }))
+    publicRoster.showModal()
+    publicRosterList.scrollTop = 0
+  },
+  'edit-team'() {
+    const team = state.teams.find(item => item.id === state.selected)
+    if (!team || !state.settings) return
+    state.editingTeam = team
+    setDraft(team)
+    navigate('admin-edit')
+  },
+  'back-to-admin'() {
+    if (mayLeave()) navigate('admin')
+  },
   'sponsor-prev': () => slideSponsor(-1),
   'sponsor-next': () => slideSponsor(1),
   'sponsor-toggle'(button) {
@@ -609,6 +682,12 @@ app.addEventListener('click', event => {
   const action = actions[button.dataset.action]
   if (action) void action(button)
 })
+
+publicRoster.addEventListener('click', event => {
+  if (event.target === publicRoster) publicRoster.close()
+})
+
+publicRoster.addEventListener('close', () => focusPublicTeam(publicRoster.dataset.teamId))
 
 app.addEventListener('beforeinput', event => {
   const field = event.target
@@ -682,7 +761,7 @@ app.addEventListener('submit', async event => {
   if (form.id === 'registration-form') {
     state.submitted = true
     showDraftIssues()
-    if (Object.keys(draftIssues(state.draft, state.settings?.birth_years ?? years)).length) {
+    if (Object.keys(currentDraftIssues()).length) {
       const invalid = form.querySelector('[aria-invalid="true"]:not([type="file"])') ?? form.querySelector('#issue-roster')
       invalid?.focus()
       return
@@ -712,7 +791,7 @@ app.addEventListener('submit', async event => {
 })
 
 window.addEventListener('beforeunload', event => {
-  if (state.dirty && state.screen === 'team') {
+  if (state.dirty && ['team', 'admin-edit'].includes(state.screen)) {
     event.preventDefault()
     event.returnValue = ''
   }
